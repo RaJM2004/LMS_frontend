@@ -25,12 +25,32 @@ const Certificate: React.FC<CertificateProps> = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const t = translations[language as keyof typeof translations] || translations.ENGLISH;
 
-    // Generate a temporary fallback ID
-    const [stableId] = useState(() => 'QX-' + Math.random().toString(36).substr(2, 9).toUpperCase());
+    // --- ID STABILITY LOGIC ---
+    // Create a key bound to user and course to persist ID
+    const storageKey = userEmail ? `cert_id_${userEmail.replace(/[^a-zA-Z0-9]/g, '')}_${courseName.replace(/[^a-zA-Z0-9]/g, '')}` : null;
+
+    // 1. Initialize stableId from localStorage (if exists) or generate new fallback
+    const [stableId] = useState(() => {
+        if (certificateId) return certificateId;
+        if (storageKey) {
+            const cached = localStorage.getItem(storageKey);
+            if (cached) return cached;
+        }
+        return 'QX-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    });
+
     const [backendCertId, setBackendCertId] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
 
-    const finalCertificateId = certificateId || backendCertId || stableId;
+    // Prioritize Backend ID > Stable Local ID
+    const finalCertificateId = backendCertId || stableId;
+
+    // Persist fallback stableId immediately to prevent regeneration on refresh
+    useEffect(() => {
+        if (storageKey && !localStorage.getItem(storageKey)) {
+            localStorage.setItem(storageKey, stableId);
+        }
+    }, [stableId, storageKey]);
 
     const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
     const [scale, setScale] = useState(1);
@@ -45,8 +65,11 @@ const Certificate: React.FC<CertificateProps> = ({
             if (certificateId) return;
             if (!userEmail) return;
 
+            setIsSyncing(true);
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const API_URL = import.meta.env.VITE_API_URL || 'https://lms-backend-vzds.onrender.com';
+                console.log(`Fetching certificate for ${userEmail}...`);
+
                 const response = await fetch(`${API_URL}/api/certificate/issue`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -57,16 +80,25 @@ const Certificate: React.FC<CertificateProps> = ({
                 });
 
                 const data = await response.json();
+
                 if (data.success && data.certificate) {
-                    setBackendCertId(data.certificate.certificateId);
+                    const realId = data.certificate.certificateId;
+                    setBackendCertId(realId);
+
+                    // Update localStorage with real ID to ensure future consistency
+                    if (storageKey) {
+                        localStorage.setItem(storageKey, realId);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to issue/fetch certificate:", error);
+            } finally {
+                setIsSyncing(false);
             }
         };
 
         createOrFetchCertificate();
-    }, [userEmail, courseName, certificateId]);
+    }, [userEmail, courseName, certificateId, storageKey, stableId]);
 
     useEffect(() => {
         // Generate QR code as data URL for reliable rendering in html2canvas

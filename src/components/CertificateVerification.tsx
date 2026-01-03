@@ -31,7 +31,7 @@ const CertificateVerification: React.FC = () => {
 
         try {
             // Adjust API URL as needed (e.g., from env or hardcoded for dev)
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const API_URL = import.meta.env.VITE_API_URL || 'https://lms-backend-vzds.onrender.com';
             const response = await fetch(`${API_URL}/api/certificate/verify/${certId}`);
             const data = await response.json();
 
