@@ -28,6 +28,7 @@ const Certificate: React.FC<CertificateProps> = ({
     // Generate a temporary fallback ID
     const [stableId] = useState(() => 'QX-' + Math.random().toString(36).substr(2, 9).toUpperCase());
     const [backendCertId, setBackendCertId] = useState<string | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const finalCertificateId = certificateId || backendCertId || stableId;
 
@@ -354,6 +355,22 @@ const Certificate: React.FC<CertificateProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Sync Status / Retry */}
+            {!backendCertId && userEmail && (
+                <div className="mb-4 text-center">
+                    <p className="text-amber-600 text-sm mb-2">Certificate not yet verified with database.</p>
+                    <button
+                        onClick={() => {
+                            // Force re-run of effect by invalidating or calling directly
+                            window.location.reload();
+                        }}
+                        className="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded hover:bg-amber-200"
+                    >
+                        Retry Verification Status
+                    </button>
+                </div>
+            )}
 
             <div className="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-6 w-full max-w-md md:max-w-none">
                 <button onClick={downloadCertificate} className="flex items-center justify-center space-x-2 bg-[#1e3a8a] text-white px-8 py-3 rounded-full hover:bg-[#172554] transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
