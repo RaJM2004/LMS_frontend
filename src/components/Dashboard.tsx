@@ -803,6 +803,7 @@ const Dashboard = () => {
                                             userName={user.fullName || user.email.split('@')[0]}
                                             courseName={completedCourses.find(c => c.id === (viewCertificateId || completedCourses[0].id))?.name || 'Course Completion'}
                                             language={settingsLanguage}
+                                            userEmail={user.email}
                                         />
                                     </Suspense>
                                 </>

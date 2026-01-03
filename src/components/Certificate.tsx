@@ -10,6 +10,7 @@ interface CertificateProps {
     language?: string;
     certificateId?: string;
     date?: string;
+    userEmail?: string;
 }
 
 const Certificate: React.FC<CertificateProps> = ({
@@ -17,21 +18,54 @@ const Certificate: React.FC<CertificateProps> = ({
     courseName,
     language = 'ENGLISH',
     certificateId,
-    date = new Date().toLocaleDateString()
+    date = new Date().toLocaleDateString(),
+    userEmail
 }) => {
     const certificateRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const t = translations[language as keyof typeof translations] || translations.ENGLISH;
 
-    // Generate a stable ID if none is provided
+    // Generate a temporary fallback ID
     const [stableId] = useState(() => 'QX-' + Math.random().toString(36).substr(2, 9).toUpperCase());
-    const finalCertificateId = certificateId || stableId;
+    const [backendCertId, setBackendCertId] = useState<string | null>(null);
+
+    const finalCertificateId = certificateId || backendCertId || stableId;
 
     const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
     const [scale, setScale] = useState(1);
 
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://quantxai.com';
+    // Use the verification URL pointing to our frontend route
     const verificationUrl = `${origin}/verify/${finalCertificateId}`;
+
+    useEffect(() => {
+        const createOrFetchCertificate = async () => {
+            // If ID is explicitly passed (e.g. from verification view), use it.
+            if (certificateId) return;
+            if (!userEmail) return;
+
+            try {
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const response = await fetch(`${API_URL}/api/certificate/issue`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: userEmail,
+                        courseName: courseName
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success && data.certificate) {
+                    setBackendCertId(data.certificate.certificateId);
+                }
+            } catch (error) {
+                console.error("Failed to issue/fetch certificate:", error);
+            }
+        };
+
+        createOrFetchCertificate();
+    }, [userEmail, courseName, certificateId]);
 
     useEffect(() => {
         // Generate QR code as data URL for reliable rendering in html2canvas
