@@ -26,7 +26,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onUpdateProfile, langua
                 </button>
 
                 <div className="flex items-center space-x-2">
-                    <img src="/logo.png" alt="Quant X AI" className="h-8 md:h-10 rounded-full" />
+                    <img src="/logo.png" alt="Quant X AI" className="h-8 md:h-10" />
                 </div>
             </div>
             <div className="flex items-center space-x-6">

@@ -132,7 +132,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
             {/* Navbar */}
             <nav id="home" className="flex justify-between items-center px-6 md:px-12 py-5 bg-slate-950/80 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-slate-800/50">
                 <div className="flex items-center space-x-2">
-                    <img src="/logo.png" alt="Quant X AI Logo" className="h-10 rounded-full" />
+                    <img src="/logo.png" alt="Quant X AI Logo" className="h-10" />
                 </div>
                 <div className="hidden md:flex space-x-10 text-slate-400 font-medium text-sm">
                     <a href="#home" className="text-blue-400 font-semibold hover:text-blue-300 transition-colors">Home</a>
@@ -660,7 +660,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                 <div className="container mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-4 gap-12">
                     <div className="space-y-6">
                         <div className="flex items-center space-x-2">
-                            <img src="/logo.png" alt="Quant X AI Logo" className="h-10 rounded-full" />
+                            <img src="/logo.png" alt="Quant X AI Logo" className="h-10" />
 
                         </div>
                         <p className="text-sm leading-relaxed text-gray-500">
