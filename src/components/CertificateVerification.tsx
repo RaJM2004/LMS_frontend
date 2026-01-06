@@ -65,9 +65,9 @@ const CertificateVerification: React.FC = () => {
 
             {/* Navbar Placeholder / Brand */}
             <div className="relative z-10 px-6 py-6 flex justify-between items-center max-w-7xl mx-auto w-full">
-                <div className="flex items-center gap-2 text-white/90">
-                    <ShieldCheck className="w-8 h-8 text-yellow-400" />
-                    <span className="font-bold text-xl tracking-tight">Quant X AI <span className="text-yellow-400 font-light">Verify</span></span>
+                <div className="flex items-center gap-2">
+                    <img src="/logo.png" alt="Quant X AI" className="h-12 bg-white/10 p-1.5 rounded-lg backdrop-blur-sm border border-white/20" />
+                    <span className="font-bold text-xl tracking-tight text-white ml-2">Genesys Quantis <span className="text-yellow-400 font-light">Verify</span></span>
                 </div>
             </div>
 
@@ -154,7 +154,7 @@ const CertificateVerification: React.FC = () => {
                             {/* Display the Certificate */}
                             <div className="relative w-full overflow-hidden rounded-xl shadow-2xl border border-slate-200 bg-slate-800">
                                 <div className="overflow-auto pb-4 custom-scrollbar">
-                                    <div className="scale-[0.8] origin-top md:scale-100">
+                                    <div className="min-w-[800px] md:min-w-full flex justify-center">
                                         <Certificate
                                             userName={verificationResult.studentName}
                                             courseName={verificationResult.courseName}
