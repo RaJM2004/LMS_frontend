@@ -202,7 +202,7 @@ const Certificate: React.FC<CertificateProps> = ({
     };
 
     return (
-        <div className="flex flex-col items-center justify-center p-4 md:p-8 w-full" ref={containerRef}>
+        <div className="flex flex-col items-center justify-start p-4 md:p-8 w-full" ref={containerRef}>
             <div className="mb-8 text-center w-full max-w-2xl">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">{t.congrats}</h2>
                 <p className="text-sm md:text-base text-gray-600">{t.congratsMsg}</p>
@@ -373,7 +373,7 @@ const Certificate: React.FC<CertificateProps> = ({
                                     </div>
                                     <div className="h-[2px] w-full bg-gray-800 mb-1"></div>
                                     <p className="font-bold text-[#1e3a8a] font-serif text-sm">Ananya Parikibandla</p>
-                                    <p className="text-[9px] uppercase tracking-widest text-gray-500">CEO, Quant X AI</p>
+                                    <p className="text-[9px] uppercase tracking-widest text-gray-500">CEO, Genesys Quantis</p>
                                 </div>
                             </div>
                         </div>
@@ -381,8 +381,8 @@ const Certificate: React.FC<CertificateProps> = ({
 
                     {/* Watermark Big */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none overflow-hidden">
-                        <span className="text-[150px] font-bold uppercase text-gray-900 tracking-widest transform -rotate-12 select-none">
-                            Quant X AI
+                        <span className="text-[80px] font-bold uppercase text-gray-900 tracking-widest transform -rotate-12 select-none whitespace-nowrap">
+                            Genesys Quantis
                         </span>
                     </div>
                 </div>

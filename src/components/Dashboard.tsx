@@ -779,7 +779,7 @@ const Dashboard = () => {
                         </div>
                     )}
                     {view === 'certificate' && (
-                        <div className="flex flex-col items-center justify-center p-4 min-h-[600px] w-full">
+                        <div className="flex flex-col items-center justify-start p-4 pt-8 min-h-[600px] w-full">
                             {completedCourses.length > 0 ? (
                                 <>
                                     {completedCourses.length > 1 && (
@@ -799,12 +799,16 @@ const Dashboard = () => {
                                         </div>
                                     )}
                                     <Suspense fallback={<div className="flex justify-center items-center h-[600px]"><div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div></div>}>
-                                        <Certificate
-                                            userName={user.fullName || user.email.split('@')[0]}
-                                            courseName={completedCourses.find(c => c.id === (viewCertificateId || completedCourses[0].id))?.name || 'Course Completion'}
-                                            language={settingsLanguage}
-                                            userEmail={user.email}
-                                        />
+                                        <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+                                            <div className="min-w-[800px] flex justify-center">
+                                                <Certificate
+                                                    userName={user.fullName || user.email.split('@')[0]}
+                                                    courseName={completedCourses.find(c => c.id === (viewCertificateId || completedCourses[0].id))?.name || 'Course Completion'}
+                                                    language={settingsLanguage}
+                                                    userEmail={user.email}
+                                                />
+                                            </div>
+                                        </div>
                                     </Suspense>
                                 </>
                             ) : (
