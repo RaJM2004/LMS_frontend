@@ -585,8 +585,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                                     </div>
                                     <div>
                                         <h4 className="text-white font-bold text-lg">Email Us</h4>
-                                        <p className="text-slate-500">support@quantxai.com</p>
-                                        <p className="text-slate-500">info@quantxai.com</p>
+                                        <p className="text-slate-500">contact@genesysquantis.com</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start space-x-4">
@@ -595,7 +594,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                                     </div>
                                     <div>
                                         <h4 className="text-white font-bold text-lg">Call Us</h4>
-                                        <p className="text-slate-500">+91 80085 02829</p>
+                                        <p className="text-slate-500">+91 7036955133</p>
                                         <p className="text-slate-500">Mon-Fri, 9am - 6pm</p>
                                     </div>
                                 </div>
@@ -676,14 +675,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                         <div className="space-y-4 pt-6 border-t border-gray-800">
                             <div className="flex items-center space-x-3 text-sm">
                                 <Mail size={16} className="text-blue-500 shrink-0" />
-                                <a href="mailto:info@quantxai.com" className="hover:text-blue-400 transition-colors">info@quantxai.com</a>
+                                <a href="mailto:contact@genesysquantis.com" className="hover:text-blue-400 transition-colors">contact@genesysquantis.com</a>
                             </div>
                             <div className="flex items-start space-x-3 text-sm">
                                 <Phone size={16} className="text-blue-500 mt-1 shrink-0" />
                                 <div className="flex flex-col space-y-1.5">
-                                    <a href="tel:+917893752462" className="hover:text-blue-400 transition-colors">+91 7893752462</a>
-                                    <a href="tel:+918008502829" className="hover:text-blue-400 transition-colors">+91 8008502829</a>
-                                    <a href="tel:+919014366620" className="hover:text-blue-400 transition-colors">+91 9014366620</a>
+                                    <a href="tel:+917893752462" className="hover:text-blue-400 transition-colors">+91 7036951155</a>
+                                    <a href="tel:+918008502829" className="hover:text-blue-400 transition-colors">+91 7036955133</a>
+
                                 </div>
                             </div>
                         </div>
