@@ -132,7 +132,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
             {/* Navbar */}
             <nav id="home" className="flex justify-between items-center px-6 md:px-12 py-5 bg-slate-950/80 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-slate-800/50">
                 <div className="flex items-center space-x-2">
-                    <img src="/logo.png" alt="Quant X AI Logo" className="h-10" />
+                    <img src="/logo1.png" alt="Quant X AI Logo" className="h-10" />
                 </div>
                 <div className="hidden md:flex space-x-10 text-slate-400 font-medium text-sm">
                     <a href="#home" className="text-blue-400 font-semibold hover:text-blue-300 transition-colors">Home</a>
@@ -585,7 +585,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                                     </div>
                                     <div>
                                         <h4 className="text-white font-bold text-lg">Email Us</h4>
-                                        <p className="text-slate-500">contact@genesysquantis.com</p>
+                                        <p className="text-slate-500">contact@anvrikshtechsolutions.com</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start space-x-4">
@@ -659,7 +659,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                 <div className="container mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-4 gap-12">
                     <div className="space-y-6">
                         <div className="flex items-center space-x-2">
-                            <img src="/logo.png" alt="Quant X AI Logo" className="h-10" />
+                            <img src="/logo1.png" alt="Quant X AI Logo" className="h-10" />
 
                         </div>
                         <p className="text-sm leading-relaxed text-gray-500">
@@ -675,7 +675,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                         <div className="space-y-4 pt-6 border-t border-gray-800">
                             <div className="flex items-center space-x-3 text-sm">
                                 <Mail size={16} className="text-blue-500 shrink-0" />
-                                <a href="mailto:contact@genesysquantis.com" className="hover:text-blue-400 transition-colors">contact@genesysquantis.com</a>
+                                <a href="mailto:contact@anvrikshtechsolutions.com" className="hover:text-blue-400 transition-colors">contact@anvrikshtechsolutions.com</a>
                             </div>
                             <div className="flex items-start space-x-3 text-sm">
                                 <Phone size={16} className="text-blue-500 mt-1 shrink-0" />

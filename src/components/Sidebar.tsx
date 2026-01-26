@@ -44,7 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="w-64 bg-white h-full border-r border-gray-200 flex flex-col shadow-lg z-10">
             <div className="p-4 border-b border-gray-200 bg-blue-900 text-white">
                 <div className="flex items-center space-x-2 mb-4">
-                    <img src="/logo.png" alt="Quant X AI" className="h-8 bg-white p-1" />
+                    <img src="/logo1.png" alt="Quant X AI" className="h-8 bg-white p-1" />
                 </div>
 
                 {/* Course Switcher */}

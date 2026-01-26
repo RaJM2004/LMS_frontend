@@ -523,7 +523,7 @@ const Dashboard = () => {
     }, [user, modules]);
 
     if (!user) {
-        return <Login onLogin={handleLogin} />;
+        return <Login onLogin={handleLogin} isLoading={isLoggingIn} />;
     }
 
     if (view === 'admin') {

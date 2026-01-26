@@ -286,7 +286,7 @@ const Certificate: React.FC<CertificateProps> = ({
                             <div className="flex-1 flex flex-col items-center justify-start text-center relative z-10 -mt-2">
                                 {/* Logo */}
                                 <div className="mb-4">
-                                    <img src="/logo.png" alt="Quant X AI" className="h-12 object-contain" />
+                                    <img src="/logo1.png" alt="Quant X AI" className="h-12 object-contain" />
                                 </div>
 
                                 <h1 className="text-5xl font-serif font-bold text-[#1e3a8a] tracking-[0.15em] uppercase mb-4" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>
@@ -373,7 +373,7 @@ const Certificate: React.FC<CertificateProps> = ({
                                     </div>
                                     <div className="h-[2px] w-full bg-gray-800 mb-1"></div>
                                     <p className="font-bold text-[#1e3a8a] font-serif text-sm">Ananya Parikibandla</p>
-                                    <p className="text-[9px] uppercase tracking-widest text-gray-500">CEO, Genesys Quantis</p>
+                                    <p className="text-[9px] uppercase tracking-widest text-gray-500">CEO, ANVRiksh Tech Solutions</p>
                                 </div>
                             </div>
                         </div>
@@ -382,7 +382,7 @@ const Certificate: React.FC<CertificateProps> = ({
                     {/* Watermark Big */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none overflow-hidden">
                         <span className="text-[80px] font-bold uppercase text-gray-900 tracking-widest transform -rotate-12 select-none whitespace-nowrap">
-                            Genesys Quantis
+                            ANVRiksh Tech Solutions
                         </span>
                     </div>
                 </div>
