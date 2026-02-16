@@ -33,7 +33,7 @@ graph TD
     User -->|Interacts| UI
     UI -->|Navigates| Routing
     UI -->|Dispatches Actions| State
-    State -->|HTTP Requests (Axios/Fetch)| API
+    State -->|HTTP Requests [Axios/Fetch]| API
     
     API -->|Validates Token| Auth
     API -->|Processes Request| Logic
