@@ -19,7 +19,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, isLoading = false }) => {
         <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-900 to-blue-600">
             <div className="bg-white p-10 rounded-xl shadow-2xl w-96 transform transition-all hover:scale-105">
                 <div className="flex justify-center mb-6">
-                    <img src="/logo1.png" alt="Quant X AI" className="h-12" />
+                    <img src="/logo.png" alt="Genesys Quantis" className="h-12" />
                 </div>
                 <h2 className="text-3xl font-bold mb-2 text-center text-gray-800">Welcome Back</h2>
                 <p className="text-center text-gray-500 mb-8">Enter your email to access your dashboard</p>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import { API_BASE_URL } from '../config';
-import { Play, Search, BookOpen, Users, User, Medal as Award, Monitor, CheckCircle, ArrowRight, Star, Facebook, Twitter, Instagram, Linkedin, Mail, Brain, Globe, Shield, Phone, Lock } from 'lucide-react';
+import { Play, Search, BookOpen, Users, User, Medal as Award, Monitor, CheckCircle, ArrowRight, Star, Facebook, Twitter, Instagram, Linkedin, Mail, Brain, Globe, Shield, Phone, Lock, TrendingUp, Briefcase, Rocket } from 'lucide-react';
 
 declare global {
     interface Window {
@@ -16,6 +16,7 @@ interface LandingPageProps {
 
 const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => {
     const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+    const [showVideoModal, setShowVideoModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         name: '',
@@ -132,7 +133,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
             {/* Navbar */}
             <nav id="home" className="flex justify-between items-center px-6 md:px-12 py-5 bg-slate-950/80 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-slate-800/50">
                 <div className="flex items-center space-x-2">
-                    <img src="/logo1.png" alt="Quant X AI Logo" className="h-10" />
+                    <img src="/logo.png" alt="Genesys Quantis Logo" className="h-10" />
                 </div>
                 <div className="hidden md:flex space-x-10 text-slate-400 font-medium text-sm">
                     <a href="#home" className="text-blue-400 font-semibold hover:text-blue-300 transition-colors">Home</a>
@@ -208,30 +209,89 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
             {/* Hero Section */}
             <header className="container mx-auto px-6 md:px-12 py-12 md:py-20 flex flex-col md:flex-row items-center justify-between overflow-hidden max-w-7xl">
                 <div className="md:w-1/2 space-y-8 animate-fadeIn z-10">
+                    {/* 3 Year Anniversary Banner - Theme Matched */}
+                    <div className="relative mb-6">
+                        <div className="bg-gradient-to-r from-slate-900 to-slate-950 border border-orange-500/30 rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm">
+                            {/* Subtle Background Gradient */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-red-500/5"></div>
+
+                            {/* Content */}
+                            <div className="relative z-10">
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                                    {/* Left Side - Message */}
+                                    <div className="flex-1 text-center md:text-left">
+                                        {/* Badge */}
+                                        <div className="inline-flex items-center bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1 rounded-full mb-3">
+                                            <Star className="text-white fill-white mr-1" size={12} />
+                                            <span className="text-white font-bold text-xs uppercase tracking-wider">Limited Time Offer</span>
+                                        </div>
+
+                                        {/* Title */}
+                                        <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
+                                            Celebrating <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">3 Years</span> of Excellence!
+                                        </h3>
+
+                                        {/* Subtitle */}
+                                        <p className="text-slate-400 text-sm">
+                                            Thank you for being part of our journey
+                                        </p>
+                                    </div>
+
+                                    {/* Right Side - Discount */}
+                                    <div className="flex items-center gap-4">
+                                        {/* Discount Badge */}
+                                        <div className="relative group">
+                                            <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500 blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                                            <div className="relative bg-gradient-to-r from-orange-500 to-red-600 px-6 py-3 rounded-xl">
+                                                <div className="text-center">
+                                                    <div className="text-4xl md:text-5xl font-black text-white">89%</div>
+                                                    <div className="text-white/90 font-semibold text-xs uppercase tracking-wide">Discount</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Details */}
+                                        <div className="hidden md:block">
+                                            <div className="text-white font-bold text-sm mb-1">On All Courses</div>
+                                            <div className="flex items-center gap-1">
+                                                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+                                                <span className="text-orange-400 text-xs font-medium">Enrolled students only</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Subtle Corner Accent */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-transparent rounded-bl-full"></div>
+                        </div>
+                    </div>
+
                     <div className="inline-flex items-center space-x-2 bg-slate-900/50 text-blue-400 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase border border-slate-800 backdrop-blur-sm">
                         <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]"></span>
                         <span>Start Learning Today</span>
                     </div>
                     <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-[1.1] tracking-tight">
-                        Learn Without <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x">Limits</span>
+                        Virtual AI -<br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x">University at your home</span>
                     </h1>
                     <p className="text-lg md:text-xl text-slate-400 max-w-lg leading-relaxed">
-                        Unlock your potential with thousands of courses from expert instructors. Advance your career with our AI-powered learning platform designed for the future.
+                        Learn directly from AI industry experts with over 14 years of global MNC experience. Embracing AI now is the key to securing your career in today's competitive job market.
                     </p>
 
+
                     <div className="flex space-x-8 md:space-x-12 py-4 border-t border-slate-800/50 pt-8">
-                        <div>
-                            <h3 className="text-3xl font-bold text-white">1000+</h3>
-                            <p className="text-slate-500 text-xs font-medium uppercase tracking-wide mt-1">Online Courses</p>
+                        <div className="group cursor-default">
+                            <h3 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 group-hover:from-blue-300 group-hover:to-purple-300 transition-all">20+</h3>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mt-1 group-hover:text-slate-400 transition-colors">1-1 Mentors</p>
                         </div>
-                        <div>
-                            <h3 className="text-3xl font-bold text-white">50k+</h3>
-                            <p className="text-slate-500 text-xs font-medium uppercase tracking-wide mt-1">Active Students</p>
+                        <div className="group cursor-default">
+                            <h3 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400 group-hover:from-green-300 group-hover:to-emerald-300 transition-all">100+</h3>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mt-1 group-hover:text-slate-400 transition-colors">Active Students</p>
                         </div>
-                        <div>
-                            <h3 className="text-3xl font-bold text-white">4.8/5</h3>
-                            <p className="text-slate-500 text-xs font-medium uppercase tracking-wide mt-1">Average Rating</p>
+                        <div className="group cursor-default">
+                            <h3 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 group-hover:from-yellow-300 group-hover:to-orange-300 transition-all">4.8/5</h3>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mt-1 group-hover:text-slate-400 transition-colors">Average Rating</p>
                         </div>
                     </div>
 
@@ -242,7 +302,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                         >
                             Get Started <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
                         </button>
-                        <button className="bg-slate-900 text-slate-300 border border-slate-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-800 hover:border-slate-600 hover:text-white transition-all flex items-center justify-center shadow-lg hover:shadow-slate-700/50 group">
+                        <button onClick={() => setShowVideoModal(true)} className="bg-slate-900 text-slate-300 border border-slate-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-800 hover:border-slate-600 hover:text-white transition-all flex items-center justify-center shadow-lg hover:shadow-slate-700/50 group">
                             <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center mr-3 group-hover:bg-slate-700 transition-colors border border-slate-700">
                                 <Play className="fill-slate-300 text-slate-300 ml-1 group-hover:fill-white group-hover:text-white" size={14} />
                             </div>
@@ -301,9 +361,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                 <div className="container mx-auto px-6 md:px-12 max-w-7xl">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
                         {[
-                            { icon: Monitor, label: "Online Courses", value: "25+", color: "text-orange-400", bg: "bg-orange-500/10" },
+                            { icon: Monitor, label: "Trending Online Courses", value: "25+", color: "text-orange-400", bg: "bg-orange-500/10" },
                             { icon: Users, label: "Expert Tutors", value: "20+", color: "text-blue-400", bg: "bg-blue-500/10" },
-                            { icon: BookOpen, label: "Student Active", value: "400+", color: "text-purple-400", bg: "bg-purple-500/10" },
+                            { icon: BookOpen, label: "Active Students", value: "100+", color: "text-purple-400", bg: "bg-purple-500/10" },
                             { icon: Award, label: "Certified Courses", value: "300+", color: "text-green-400", bg: "bg-green-500/10" },
                         ].map((stat, index) => (
                             <div key={index} className="bg-slate-900 p-4 md:p-6 rounded-2xl shadow-lg border border-slate-800 flex flex-col md:flex-row items-center md:space-x-4 space-y-3 md:space-y-0 text-center md:text-left hover:shadow-xl transition-all hover:-translate-y-1 group">
@@ -320,7 +380,441 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                 </div>
             </section>
 
+            {/* Course Categories Section - Moved Above Popular Courses */}
+            <section className="py-24 bg-slate-900 border-y border-slate-800/50">
+                <div className="container mx-auto px-6 md:px-12 max-w-7xl">
+                    <div className="text-center mb-16">
+                        <h2 className="text-4xl font-bold text-white mb-4 tracking-tight">Explore Courses by <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Category</span></h2>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-lg">Find the perfect course for your learning goals</p>
+                    </div>
+
+                    {/* Attractive Table */}
+                    <div className="overflow-x-auto rounded-2xl border border-slate-800 shadow-2xl">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-slate-950">
+                                    <th className="py-6 px-8 text-left border-b-2 border-orange-500 bg-gradient-to-br from-orange-500/20 to-transparent">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                                                <TrendingUp className="text-white" size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-white">Trending Skills</h3>
+                                                <p className="text-xs text-orange-400 font-semibold">Most In-Demand</p>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th className="py-6 px-8 text-left border-b-2 border-blue-500 bg-gradient-to-br from-blue-500/20 to-transparent">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                                                <Briefcase className="text-white" size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-white">Bootcamp Programs</h3>
+                                                <p className="text-xs text-blue-400 font-semibold">Intensive Learning</p>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    <th className="py-6 px-8 text-left border-b-2 border-purple-500 bg-gradient-to-br from-purple-500/20 to-transparent">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                                                <Rocket className="text-white" size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-white">Skill Boosters</h3>
+                                                <p className="text-xs text-purple-400 font-semibold">Specialized Training</p>
+                                            </div>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    {
+                                        trending: { id: 'gen-ai-course', name: 'Generative AI' },
+                                        bootcamp: { id: 'python-ai-course', name: 'Python Programming for AI' },
+                                        booster: { id: 'ai-healthcare-course', name: 'Artificial Intelligence in Healthcare' }
+                                    },
+                                    {
+                                        trending: { id: 'agentic-ai-course', name: 'Agentic AI' },
+                                        bootcamp: { id: 'ml-dl-course', name: 'Machine Learning & Deep Learning' },
+                                        booster: { id: 'pharma-gen-ai-course', name: 'Generative AI in Pharma' }
+                                    },
+                                    {
+                                        trending: { id: 'nlp-course', name: 'Natural Language Processing' },
+                                        bootcamp: { id: 'cv-course', name: 'Computer Vision' },
+                                        booster: { id: 'ai-cybersecurity-course', name: 'AI in Cybersecurity' }
+                                    }
+                                ].map((row, index) => (
+                                    <tr key={index} className="border-b border-slate-800 hover:bg-slate-800/30 transition-all">
+                                        <td className="py-5 px-8 border-r border-slate-800/50">
+                                            <button
+                                                onClick={() => onCourseClick(row.trending.id)}
+                                                className="flex items-center space-x-3 w-full text-left group"
+                                            >
+                                                <div className="w-8 h-8 bg-orange-500/10 rounded-full flex items-center justify-center text-orange-400 font-bold text-sm border border-orange-500/30 group-hover:bg-orange-500 group-hover:text-white transition-all">
+                                                    {index + 1}
+                                                </div>
+                                                <span className="text-slate-300 group-hover:text-orange-400 transition-colors font-medium group-hover:translate-x-1 transition-transform">
+                                                    {row.trending.name}
+                                                </span>
+                                                <ArrowRight size={16} className="text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                                            </button>
+                                        </td>
+                                        <td className="py-5 px-8 border-r border-slate-800/50">
+                                            <button
+                                                onClick={() => onCourseClick(row.bootcamp.id)}
+                                                className="flex items-center space-x-3 w-full text-left group"
+                                            >
+                                                <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-400 font-bold text-sm border border-blue-500/30 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                                    {index + 1}
+                                                </div>
+                                                <span className="text-slate-300 group-hover:text-blue-400 transition-colors font-medium group-hover:translate-x-1 transition-transform">
+                                                    {row.bootcamp.name}
+                                                </span>
+                                                <ArrowRight size={16} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                                            </button>
+                                        </td>
+                                        <td className="py-5 px-8">
+                                            <button
+                                                onClick={() => onCourseClick(row.booster.id)}
+                                                className="flex items-center space-x-3 w-full text-left group"
+                                            >
+                                                <div className="w-8 h-8 bg-purple-500/10 rounded-full flex items-center justify-center text-purple-400 font-bold text-sm border border-purple-500/30 group-hover:bg-purple-500 group-hover:text-white transition-all">
+                                                    {index + 1}
+                                                </div>
+                                                <span className="text-slate-300 group-hover:text-purple-400 transition-colors font-medium group-hover:translate-x-1 transition-transform">
+                                                    {row.booster.name}
+                                                </span>
+                                                <ArrowRight size={16} className="text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Category Stats */}
+                    <div className="grid grid-cols-3 gap-6 mt-8">
+                        <div className="bg-slate-950 border border-orange-500/30 rounded-xl p-4 text-center hover:border-orange-500 transition-all">
+                            <div className="text-2xl font-bold text-orange-400 mb-1">3</div>
+                            <div className="text-xs text-slate-400 uppercase tracking-wide">Trending Courses</div>
+                        </div>
+                        <div className="bg-slate-950 border border-blue-500/30 rounded-xl p-4 text-center hover:border-blue-500 transition-all">
+                            <div className="text-2xl font-bold text-blue-400 mb-1">3</div>
+                            <div className="text-xs text-slate-400 uppercase tracking-wide">Bootcamp Programs</div>
+                        </div>
+                        <div className="bg-slate-950 border border-purple-500/30 rounded-xl p-4 text-center hover:border-purple-500 transition-all">
+                            <div className="text-2xl font-bold text-purple-400 mb-1">3</div>
+                            <div className="text-xs text-slate-400 uppercase tracking-wide">Skill Boosters</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Why Choose Our Platform - Redesigned */}
+            <section className="py-24 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
+                {/* Animated Background Elements */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-300 rounded-full blur-3xl"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-300 rounded-full blur-3xl"></div>
+                </div>
+
+                <div className="container mx-auto px-6 md:px-12 max-w-7xl relative z-10">
+                    {/* Header */}
+                    <div className="text-center mb-16">
+                        <div className="inline-flex items-center bg-white/10 backdrop-blur-md px-4 py-2 rounded-full mb-6 border border-white/20">
+                            <Monitor className="mr-2 text-white" size={16} />
+                            <span className="text-white text-sm font-semibold uppercase tracking-wider">Next-Generation Learning Platform</span>
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+                            Why Choose Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-300">Platform?</span>
+                        </h2>
+                        <p className="text-blue-100 max-w-3xl mx-auto text-lg leading-relaxed">
+                            Experience revolutionary online education powered by AI, backed by industry experts, and trusted by professionals worldwide
+                        </p>
+                    </div>
+
+                    {/* Feature Cards Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                        {[
+                            {
+                                icon: Brain,
+                                title: "AI-Powered Learning",
+                                description: "Personalized learning paths with cutting-edge AI technology",
+                                stat: "98%",
+                                statLabel: "Success Rate",
+                                gradient: "from-orange-400 to-red-500",
+                                bgGradient: "from-orange-500/20 to-red-500/20"
+                            },
+                            {
+                                icon: Users,
+                                title: "Industry Experts",
+                                description: "Learn from top professionals at Google, Microsoft, Meta & more",
+                                stat: "500+",
+                                statLabel: "Instructors",
+                                gradient: "from-blue-400 to-cyan-500",
+                                bgGradient: "from-blue-500/20 to-cyan-500/20"
+                            },
+                            {
+                                icon: Globe,
+                                title: "Global Community",
+                                description: "Join 100+ learners from various countries worldwide",
+                                stat: "24/7",
+                                statLabel: "Support",
+                                gradient: "from-green-400 to-emerald-500",
+                                bgGradient: "from-green-500/20 to-emerald-500/20"
+                            },
+                            {
+                                icon: Shield,
+                                title: "Verified Certificates",
+                                description: "Blockchain verified certificates recognized by 1000+ companies",
+                                stat: "100%",
+                                statLabel: "Authentic",
+                                gradient: "from-purple-400 to-pink-500",
+                                bgGradient: "from-purple-500/20 to-pink-500/20"
+                            }
+                        ].map((feature, index) => (
+                            <div
+                                key={index}
+                                className="group relative bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl hover:shadow-white/20"
+                            >
+                                {/* Gradient Overlay */}
+                                <div className={`absolute inset-0 bg-gradient-to-br ${feature.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl`}></div>
+
+                                {/* Content */}
+                                <div className="relative z-10">
+                                    {/* Icon */}
+                                    <div className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 shadow-lg`}>
+                                        <feature.icon className="text-white" size={24} />
+                                    </div>
+
+                                    {/* Title */}
+                                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-yellow-300 transition-colors">
+                                        {feature.title}
+                                    </h3>
+
+                                    {/* Description */}
+                                    <p className="text-blue-100 text-sm mb-4 leading-relaxed">
+                                        {feature.description}
+                                    </p>
+
+                                    {/* Stat Badge */}
+                                    <div className={`inline-flex items-center bg-gradient-to-r ${feature.gradient} px-3 py-1.5 rounded-lg`}>
+                                        <span className="text-white font-bold text-sm mr-1">{feature.stat}</span>
+                                        <span className="text-white/90 text-xs uppercase tracking-wide">{feature.statLabel}</span>
+                                    </div>
+                                </div>
+
+                                {/* Corner Accent */}
+                                <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${feature.gradient} opacity-10 rounded-bl-full`}></div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Bottom CTA */}
+                    <div className="text-center">
+                        <div className="inline-flex items-center gap-8 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl px-8 py-4">
+                            <div>
+                                <div className="text-3xl font-bold text-white">100+</div>
+                                <div className="text-blue-200 text-sm">Students</div>
+                            </div>
+                            <div className="w-px h-12 bg-white/20"></div>
+                            <div>
+                                <div className="text-3xl font-bold text-white">3+</div>
+                                <div className="text-blue-200 text-sm">Countries</div>
+                            </div>
+                            <div className="w-px h-12 bg-white/20"></div>
+                            <div>
+                                <div className="text-3xl font-bold text-white">4.9/5</div>
+                                <div className="text-blue-200 text-sm">Average Rating</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Career Growth Showcase Section */}
+            <section className="py-24 bg-slate-950 relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-5">
+                    <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgb(148 163 184) 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
+                </div>
+
+                <div className="container mx-auto px-6 md:px-12 max-w-7xl relative z-10">
+                    {/* Header */}
+                    <div className="text-center mb-16">
+                        <div className="inline-flex items-center bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 px-4 py-2 rounded-full mb-6">
+                            <TrendingUp className="mr-2 text-green-400" size={16} />
+                            <span className="text-green-400 text-sm font-semibold uppercase tracking-wider">Success Stories</span>
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+                            Transform Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">Career Path</span>
+                        </h2>
+                        <p className="text-slate-400 max-w-3xl mx-auto text-lg leading-relaxed">
+                            See how our students have accelerated their careers with measurable growth in roles, skills, and compensation
+                        </p>
+                    </div>
+
+                    {/* Career Growth Stats Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                        {[
+                            {
+                                label: "Average Salary Increase",
+                                value: "156%",
+                                subtext: "Within 12 months",
+                                color: "from-green-400 to-emerald-500",
+                                bgColor: "from-green-500/20 to-emerald-500/20",
+                                icon: TrendingUp
+                            },
+                            {
+                                label: "Average Career Advancement",
+                                value: "92%",
+                                subtext: "Got promoted or switched",
+                                color: "from-blue-400 to-cyan-500",
+                                bgColor: "from-blue-500/20 to-cyan-500/20",
+                                icon: Rocket
+                            },
+                            {
+                                label: "Skill Mastery Time",
+                                value: "6 Mo - 1year",
+                                subtext: "To production-ready",
+                                color: "from-purple-400 to-pink-500",
+                                bgColor: "from-purple-500/20 to-pink-500/20",
+                                icon: Brain
+                            }
+                        ].map((stat, index) => (
+                            <div key={index} className="group relative bg-slate-900 border border-slate-800 rounded-2xl p-8 hover:border-slate-700 transition-all hover:-translate-y-2 hover:shadow-2xl">
+                                {/* Background Gradient */}
+                                <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl`}></div>
+
+                                <div className="relative z-10">
+                                    {/* Icon */}
+                                    <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                        <stat.icon className="text-white" size={24} />
+                                    </div>
+
+                                    {/* Value */}
+                                    <div className={`text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r ${stat.color} mb-2`}>
+                                        {stat.value}
+                                    </div>
+
+                                    {/* Label */}
+                                    <div className="text-white font-bold text-lg mb-1">{stat.label}</div>
+                                    <div className="text-slate-400 text-sm">{stat.subtext}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Career Path Timeline */}
+                    <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-8 md:p-12">
+                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
+                            Average Student Career Journey
+                        </h3>
+
+                        {/* Timeline */}
+                        <div className="relative">
+                            {/* Progress Line */}
+                            <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-green-500 to-emerald-500 transform -translate-y-1/2 hidden md:block"></div>
+
+                            {/* Timeline Items */}
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-4 relative">
+                                {[
+                                    {
+                                        month: "Month 0",
+                                        role: "Starting Point",
+                                        salary: "₹3.5L",
+                                        status: "Junior/Entry Level",
+                                        color: "red",
+                                        skills: ["Basics"]
+                                    },
+                                    {
+                                        month: "Month 3",
+                                        role: "Learning Phase",
+                                        salary: "₹5L",
+                                        status: "Skill Building",
+                                        color: "orange",
+                                        skills: ["Intermediate"]
+                                    },
+                                    {
+                                        month: "Month 6",
+                                        role: "Junior Developer",
+                                        salary: "₹10L",
+                                        status: "First Role Switch",
+                                        color: "yellow",
+                                        skills: ["Advanced"]
+                                    },
+                                    {
+                                        month: "Month 9",
+                                        role: "Mid-Level Dev",
+                                        salary: "₹18L",
+                                        status: "Promotion",
+                                        color: "green",
+                                        skills: ["Expert"]
+                                    },
+                                    {
+                                        month: "Month 12",
+                                        role: "Senior Developer",
+                                        salary: "₹30L+",
+                                        status: "Career Goal Achieved",
+                                        color: "emerald",
+                                        skills: ["Mastery"]
+                                    }
+                                ].map((milestone, index) => (
+                                    <div key={index} className="relative">
+                                        {/* Connector Dot */}
+                                        <div className={`hidden md:flex w-6 h-6 rounded-full bg-${milestone.color}-500 border-4 border-slate-950 mx-auto mb-16 relative z-10 ring-4 ring-${milestone.color}-500/20`}></div>
+
+                                        {/* Card */}
+                                        <div className={`bg-slate-800/50 backdrop-blur-sm border border-${milestone.color}-500/30 rounded-xl p-4 hover:border-${milestone.color}-500/50 transition-all group hover:-translate-y-1`}>
+                                            <div className={`text-${milestone.color}-400 font-bold text-sm mb-2`}>{milestone.month}</div>
+                                            <div className="text-white font-bold text-lg mb-1">{milestone.role}</div>
+                                            <div className={`text-${milestone.color}-300 font-semibold text-xl mb-2`}>{milestone.salary}</div>
+                                            <div className="text-slate-400 text-xs mb-2">{milestone.status}</div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {milestone.skills.map((skill, i) => (
+                                                    <span key={i} className={`text-xs px-2 py-0.5 bg-${milestone.color}-500/20 text-${milestone.color}-400 rounded-full`}>
+                                                        {skill}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Bottom Note */}
+                        <div className="mt-12 text-center">
+                            <p className="text-slate-400 text-sm">
+                                <Star className="inline text-yellow-400 fill-yellow-400 mr-1" size={14} />
+                                Based on data from 100+ successful students who completed our programs
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* CTA Section */}
+                    <div className="mt-16 text-center">
+                        <div className="inline-flex flex-col items-center bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-2xl p-8">
+                            <h3 className="text-2xl font-bold text-white mb-2">Ready to Start Your Journey?</h3>
+                            <p className="text-slate-400 mb-6">Join thousands of students transforming their careers</p>
+                            <button
+                                onClick={onStart}
+                                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:from-green-400 hover:to-emerald-500 transition-all shadow-lg shadow-green-900/30 hover:shadow-green-500/50 flex items-center group"
+                            >
+                                Explore Courses
+                                <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Popular Courses */}
+
             <section id="courses" className="py-24 container mx-auto px-6 md:px-12 bg-slate-950 max-w-7xl">
                 <div className="text-center mb-16">
                     <h2 className="text-4xl font-bold text-white mb-4 tracking-tight">Most Popular Courses</h2>
@@ -373,32 +867,258 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
 
 
 
+
+            {/* Live Projects Section */}
+            <section className="py-24 bg-slate-950 border-y border-slate-800/50">
+                <div className="container mx-auto px-6 md:px-12 max-w-7xl">
+                    <div className="text-center mb-16">
+                        <div className="inline-flex items-center space-x-2 bg-emerald-500/10 text-emerald-400 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase border border-emerald-500/20 backdrop-blur-sm mb-4">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <span>Real-World Experience</span>
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Projects We're <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">Working On</span></h2>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-lg">Gain hands-on experience with industry-relevant live projects</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {[
+                            {
+                                title: "AI-Powered Drug Discovery Platform",
+                                category: "Healthcare AI",
+                                status: "In Progress",
+                                participants: "45+",
+                                description: "Building an AI system for accelerating drug discovery using deep learning and molecular modeling",
+                                tech: ["Python", "TensorFlow", "RDKit"],
+                                color: "emerald"
+                            },
+                            {
+                                title: "Real-Time Fraud Detection System",
+                                category: "Cybersecurity",
+                                status: "Active",
+                                participants: "32+",
+                                description: "Developing ML models to detect fraudulent transactions in real-time for fintech applications",
+                                tech: ["Scikit-learn", "Apache Kafka", "PostgreSQL"],
+                                color: "blue"
+                            },
+                            {
+                                title: "Medical Image Analysis Tool",
+                                category: "Computer Vision",
+                                status: "In Progress",
+                                participants: "28+",
+                                description: "Creating AI models for automated diagnosis from medical imaging (X-rays, MRI, CT scans)",
+                                tech: ["PyTorch", "OpenCV", "MONAI"],
+                                color: "purple"
+                            },
+                            {
+                                title: "NLP-Based Clinical Documentation",
+                                category: "Natural Language Processing",
+                                status: "Active",
+                                participants: "38+",
+                                description: "Automating clinical documentation using advanced NLP and medical coding systems",
+                                tech: ["Transformers", "BERT", "spaCy"],
+                                color: "orange"
+                            },
+                            {
+                                title: "Predictive Maintenance System",
+                                category: "Industrial AI",
+                                status: "In Progress",
+                                participants: "25+",
+                                description: "IoT-based predictive maintenance solution using ML for manufacturing industries",
+                                tech: ["Time Series", "AWS IoT", "React"],
+                                color: "indigo"
+                            },
+                            {
+                                title: "Agentic AI Workflow Builder",
+                                category: "Agentic AI",
+                                status: "Active",
+                                participants: "52+",
+                                description: "Building an enterprise workflow automation platform powered by autonomous AI agents",
+                                tech: ["LangChain", "AutoGPT", "FastAPI"],
+                                color: "pink"
+                            }
+                        ].map((project, index) => (
+                            <div key={index} className={`bg-slate-900 rounded-2xl p-6 border border-${project.color}-500/20 hover:border-${project.color}-500/50 transition-all group hover:-translate-y-2 hover:shadow-2xl hover:shadow-${project.color}-500/10`}>
+                                <div className="flex items-start justify-between mb-4">
+                                    <span className={`text-xs font-bold px-3 py-1 rounded-full bg-${project.color}-500/10 text-${project.color}-400 border border-${project.color}-500/20`}>
+                                        {project.category}
+                                    </span>
+                                    <div className="flex items-center space-x-1">
+                                        <div className={`w-2 h-2 bg-${project.color}-500 rounded-full animate-pulse`}></div>
+                                        <span className="text-xs text-slate-400">{project.status}</span>
+                                    </div>
+                                </div>
+                                <h3 className={`text-xl font-bold text-white mb-3 group-hover:text-${project.color}-400 transition-colors`}>
+                                    {project.title}
+                                </h3>
+                                <p className="text-slate-400 text-sm mb-4 leading-relaxed">{project.description}</p>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {project.tech.map((tech, i) => (
+                                        <span key={i} className="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700">
+                                            {tech}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                                    <div className="flex items-center space-x-2">
+                                        <Users size={16} className={`text-${project.color}-400`} />
+                                        <span className="text-sm text-slate-400">{project.participants} Students</span>
+                                    </div>
+                                    <button className={`text-${project.color}-400 text-sm font-bold hover:underline`}>
+                                        Join Project →
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Previous Trainees Section */}
+            <section className="py-24 bg-slate-900 border-y border-slate-800/50">
+                <div className="container mx-auto px-6 md:px-12 max-w-7xl">
+                    <div className="text-center mb-16">
+                        <div className="inline-flex items-center space-x-2 bg-yellow-500/10 text-yellow-400 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase border border-yellow-500/20 backdrop-blur-sm mb-4">
+                            <Star className="fill-yellow-400" size={12} />
+                            <span>Success Stories</span>
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">What Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">Alumni</span> Say</h2>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-lg">Join thousands of successful graduates who transformed their careers</p>
+                    </div>
+
+                    <div className="columns-1 md:columns-2 lg:columns-3 gap-6 mx-auto">
+                        {[
+                            {
+                                name: "Nikhil M",
+                                role: "Data Analyst",
+                                course: "Data Science & AI",
+                                image: "/nikhil.jpg",
+                                rating: 5,
+                                review: "This course completely transformed my career! The hands-on projects and 1-1 mentorship helped me land my dream job. The instructors are incredibly knowledgeable and supportive."
+                            },
+                            {
+                                name: "Manisha P",
+                                role: "AI Researcher",
+                                course: "Machine Learning & Deep Learning",
+                                image: "/Manisha.jpg",
+                                rating: 5,
+                                review: "The quality of content and real-world projects exceeded my expectations. I went from knowing basics to building production-level AI systems. Highly recommend for serious learners!"
+                            },
+                            {
+                                name: "Aikya Mudapaka",
+                                role: "Software Engineer",
+                                course: "Python Programming for AI",
+                                image: "/Aikya.jpg",
+                                rating: 5,
+                                review: "Best investment in my career! The curriculum is up-to-date with industry standards, and the live projects gave me confidence to tackle real challenges. Grateful for the amazing mentors!"
+                            },
+                            {
+                                name: "Bhoomika",
+                                role: "Computer Vision Engineer",
+                                course: "Computer Vision",
+                                image: "/Boomika.webp",
+                                rating: 5,
+                                review: "The depth of knowledge and practical applications in this course is unmatched. Working on autonomous vehicle projects during the course prepared me perfectly for my role."
+                            },
+                            {
+                                name: "Parveen achukatla",
+                                role: "Healthcare AI Specialist",
+                                course: "AI in Healthcare",
+                                image: "/Preveena.webp",
+                                rating: 5,
+                                review: "As a healthcare professional transitioning to AI, this course was perfect. The medical domain expertise combined with cutting-edge AI made me an expert in my niche."
+                            },
+                            {
+                                name: "D Lakshmi Niranjan Reddy",
+                                role: "Senior AI Engineer",
+                                course: "Generative AI",
+                                image: "/Nirangan.webp",
+                                rating: 5,
+                                review: "The GenAI course was incredibly comprehensive! From theory to deployment, everything was covered. The instructors' real-world experience made complex concepts easy to understand."
+                            },
+                            {
+                                name: "Harika Moola",
+                                role: "NLP Engineer",
+                                course: "Natural Language Processing",
+                                image: "/Harika.webp",
+                                rating: 5,
+                                review: "An exceptional learning experience. The focus on practical NLP applications and modern transformer architectures gave me the skills I needed for my current role."
+                            },
+                            {
+                                name: "Kommana Devi",
+                                role: "Data Scientist",
+                                course: "Applied Data Science",
+                                image: "/Devi.webp",
+                                rating: 5,
+                                review: "I learned so much in such a short time. The project-based approach really helped solidify the concepts. I'm now working on exciting data science problems daily."
+                            }
+                        ].map((testimonial, index) => (
+                            <div key={index} className="break-inside-avoid mb-6 w-full bg-slate-950 rounded-2xl p-6 border border-slate-800 hover:border-yellow-500/50 transition-all group hover:-translate-y-2 hover:shadow-2xl hover:shadow-yellow-500/10 transform-gpu relative z-10 overflow-hidden">
+                                <div className="flex items-start mb-4">
+                                    <img
+                                        src={testimonial.image}
+                                        alt={testimonial.name}
+                                        width={64}
+                                        height={64}
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="w-16 h-16 rounded-full border-4 border-slate-800 group-hover:border-yellow-500/50 transition-all object-cover"
+                                    />
+                                    <div className="ml-4 flex-1">
+                                        <h4 className="text-lg font-bold text-white">{testimonial.name}</h4>
+                                        <p className="text-sm text-slate-400">{testimonial.role}</p>
+                                        <div className="flex items-center mt-2">
+                                            {[...Array(testimonial.rating)].map((_, i) => (
+                                                <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-slate-300 text-sm leading-relaxed mb-4 italic">"{testimonial.review}"</p>
+                                <div className="pt-4 border-t border-slate-800">
+                                    <span className="text-xs text-blue-400 font-semibold">✓ Completed: {testimonial.course}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Stats Row */}
+                    <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {[
+                            { value: "100+", label: "Students Trained" },
+                            { value: "98%", label: "Success Rate" },
+                            { value: "4.9/5", label: "Average Rating" },
+                            { value: "75+", label: "Companies Hired" }
+                        ].map((stat, i) => (
+                            <div key={i} className="text-center p-6 bg-slate-950 rounded-xl border border-slate-800 hover:border-yellow-500/50 transition-all">
+                                <h3 className="text-3xl font-bold text-white mb-2">{stat.value}</h3>
+                                <p className="text-slate-400 text-sm">{stat.label}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+
             {/* Certificates Section */}
             <section className="bg-slate-950 py-24 border-y border-slate-800/50">
                 <div className="container mx-auto px-6 md:px-12 flex flex-col md:flex-row items-center max-w-7xl">
                     <div className="md:w-1/2 mb-12 md:mb-0 relative">
-                        {/* Certificate Image and Video Layout */}
-                        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-6">
-                            <div className="relative transform rotate-[-3deg] hover:rotate-0 transition-transform duration-500">
-                                <img src="/certificate.webp" alt="Certificate" className="rounded-xl shadow-2xl w-full max-w-xs border-4 border-slate-700" />
-                                <div className="absolute -bottom-4 -right-4 bg-slate-800 p-3 rounded-lg shadow-lg flex items-center space-x-2 border border-slate-700">
-                                    <Award className="text-blue-400" size={20} />
-                                    <span className="text-xs font-bold text-white">Verified</span>
-                                </div>
-                            </div>
+                        {/* Certificate Image Layout */}
+                        <div className="relative z-10 flex items-center justify-center p-8">
+                            <div className="relative transform hover:scale-105 transition-transform duration-500 group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                                <img src="/certificate.png" alt="Certificate" className="relative rounded-xl shadow-2xl w-full max-w-lg border-4 border-slate-800" />
 
-                            {/* Video Placeholder */}
-                            <div className="relative w-full max-w-xs h-48 bg-slate-900 rounded-xl shadow-2xl overflow-hidden group cursor-pointer transform rotate-[3deg] hover:rotate-0 transition-transform duration-500 border-4 border-slate-700">
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    src="https://www.youtube.com/embed/9lxBkCJzvKs?si=sX2vX2zX2zX2zX2z"
-                                    title="YouTube video player"
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                    className="w-full h-full"
-                                ></iframe>
+                                {/* Enhanced Verified Badge */}
+                                <div className="absolute -bottom-6 -right-6 bg-slate-800 p-4 rounded-xl shadow-xl flex items-center space-x-3 border border-slate-700 z-20 animate-bounce-slow">
+                                    <div className="bg-blue-500/20 p-2 rounded-full">
+                                        <Award className="text-blue-400" size={24} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-white">Verified Certificate</span>
+                                        <span className="text-xs text-slate-400">Global ID: GQ-2026-AI</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -451,7 +1171,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                                 <tr className="bg-slate-900/50">
                                     <th className="py-6 px-8 text-lg font-semibold border-b border-slate-800">Features</th>
                                     <th className="py-6 px-8 text-lg font-semibold text-slate-400 border-b border-slate-800">Typical E-Learning</th>
-                                    <th className="py-6 px-8 text-lg font-bold text-blue-400 bg-blue-900/20 border-b border-blue-900/50 border-t-4 border-t-blue-500">Zerokost LMS</th>
+                                    <th className="py-6 px-8 text-lg font-bold text-blue-400 bg-blue-900/20 border-b border-blue-900/50 border-t-4 border-t-blue-500">Genesys Quantis LMS</th>
                                 </tr>
                             </thead>
                             <tbody className="text-slate-300">
@@ -472,40 +1192,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </section>
-
-            {/* Why Choose Our Platform (Blue Section) */}
-            <section id="about" className="py-24 bg-gradient-to-br from-blue-700 to-indigo-900 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
-                <div className="container mx-auto px-6 md:px-12 relative z-10 max-w-7xl">
-                    <div className="flex justify-center mb-6">
-                        <span className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide flex items-center">
-                            <Monitor size={12} className="mr-2" /> Next-Generation Learning Platform
-                        </span>
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-bold text-center mb-4">Why Choose Our Platform?</h2>
-                    <p className="text-center text-blue-100 max-w-2xl mx-auto mb-16 text-lg">Experience revolutionary online education powered by AI, backed by industry experts, and trusted by professionals worldwide</p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        {[
-                            { icon: Brain, title: "AI-Powered Learning", desc: "Personalized learning paths with cutting-edge AI technology", badge: "98% Success Rate" },
-                            { icon: Users, title: "Industry Experts", desc: "Learn from top professionals at Google, Microsoft, Meta & more", badge: "500+ Instructors" },
-                            { icon: Globe, title: "Global Community", desc: "Join 50,000+ learners from 150+ countries worldwide", badge: "24/7 Support" },
-                            { icon: Shield, title: "Verified Certificates", desc: "Blockchain verified certificates recognized by 1000+ companies", badge: "100% Authentic" },
-                        ].map((item, i) => (
-                            <div key={i} className="bg-white/10 backdrop-blur-md border border-white/10 p-6 rounded-3xl hover:bg-white/20 transition-all hover:-translate-y-2 group">
-                                <div className="bg-white/10 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                    <item.icon size={28} className="text-white" />
-                                </div>
-                                <h3 className="font-bold text-xl mb-3">{item.title}</h3>
-                                <p className="text-blue-100 text-sm mb-6 leading-relaxed">{item.desc}</p>
-                                <span className="inline-block bg-white/10 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide text-blue-200">
-                                    {item.badge}
-                                </span>
-                            </div>
-                        ))}
                     </div>
                 </div>
             </section>
@@ -585,7 +1271,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                                     </div>
                                     <div>
                                         <h4 className="text-white font-bold text-lg">Email Us</h4>
-                                        <p className="text-slate-500">contact@anvrikshtechsolutions.com</p>
+                                        <p className="text-slate-500">contact@genesysquantis.com</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start space-x-4">
@@ -655,79 +1341,60 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
 
 
             {/* Footer */}
-            < footer className="bg-gray-900 text-gray-400 py-20 border-t border-gray-800" >
-                <div className="container mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-4 gap-12">
-                    <div className="space-y-6">
-                        <div className="flex items-center space-x-2">
-                            <img src="/logo1.png" alt="Quant X AI Logo" className="h-10" />
+            {/* Footer - Redesigned & Interactive */}
+            <footer className="relative bg-slate-950 text-slate-400 py-16 border-t border-slate-800 overflow-hidden">
+                {/* Background Glow */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50 blur-sm"></div>
+                <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
+                <div className="container mx-auto px-6 md:px-12 flex flex-col items-center text-center relative z-10">
+                    <div className="space-y-8 max-w-3xl">
+                        {/* Logo Area */}
+                        <div className="flex flex-col items-center justify-center space-y-4 group">
+                            <div className="relative p-2">
+                                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                                <img src="/logo.png" alt="Genesys Quantis Logo" className="h-12 relative z-10 transform group-hover:scale-105 transition-transform duration-500" />
+                            </div>
                         </div>
-                        <p className="text-sm leading-relaxed text-gray-500">
-                            Empowering the next generation of AI developers with cutting-edge tools and personalized learning experiences.
+
+                        {/* Description */}
+                        <p className="text-base leading-relaxed text-slate-500 max-w-xl mx-auto hover:text-slate-400 transition-colors duration-300">
+                            Empowering the next generation of AI developers with cutting-edge tools, personalized learning experiences, and world-class mentorship.
                         </p>
-                        {/* <div className="flex space-x-4 pt-2">
-                            {[Facebook, Twitter, Instagram, Linkedin].map((Icon, i) => (
-                                <div key={i} className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all cursor-pointer group">
-                                    <Icon size={18} className="group-hover:scale-110 transition-transform" />
-                                </div>
-                            ))}
-                        </div> */}
-                        <div className="space-y-4 pt-6 border-t border-gray-800">
-                            <div className="flex items-center space-x-3 text-sm">
-                                <Mail size={16} className="text-blue-500 shrink-0" />
-                                <a href="mailto:contact@anvrikshtechsolutions.com" className="hover:text-blue-400 transition-colors">contact@anvrikshtechsolutions.com</a>
-                            </div>
-                            <div className="flex items-start space-x-3 text-sm">
-                                <Phone size={16} className="text-blue-500 mt-1 shrink-0" />
-                                <div className="flex flex-col space-y-1.5">
-                                    <a href="tel:+917893752462" className="hover:text-blue-400 transition-colors">+91 7036951155</a>
-                                    <a href="tel:+918008502829" className="hover:text-blue-400 transition-colors">+91 7036955133</a>
 
+
+
+                        {/* Contact Info */}
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 pt-8 border-t border-slate-900 w-full">
+                            <a href="mailto:contact@genesysquantis.com" className="flex items-center space-x-3 text-slate-400 hover:text-blue-400 transition-all duration-300 group bg-slate-900/50 px-5 py-3 rounded-full border border-slate-800/50 hover:border-blue-500/30">
+                                <div className="p-2 bg-blue-500/10 rounded-full group-hover:bg-blue-500/20 transition-colors">
+                                    <Mail size={18} className="text-blue-500" />
+                                </div>
+                                <span className="font-medium">contact@genesysquantis.com</span>
+                            </a>
+                            <div className="flex items-center space-x-3 text-slate-400 bg-slate-900/50 px-5 py-3 rounded-full border border-slate-800/50 hover:border-blue-500/30 transition-all duration-300 group cursor-default">
+                                <div className="p-2 bg-blue-500/10 rounded-full group-hover:bg-blue-500/20 transition-colors">
+                                    <Phone size={18} className="text-blue-500" />
+                                </div>
+                                <div className="flex flex-col text-left">
+                                    <a href="tel:+917036951155" className="text-xs hover:text-blue-400 transition-colors font-medium">+91 7036951155</a>
+                                    <a href="tel:+917036955133" className="text-xs hover:text-blue-400 transition-colors font-medium">+91 7036955133</a>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div>
-                        <h4 className="text-white font-bold mb-6 text-lg">Quick Links</h4>
-                        <ul className="space-y-4 text-sm">
-                            <li><a href="#home" className="hover:text-blue-400 transition-colors flex items-center"><span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 opacity-0 hover:opacity-100 transition-opacity"></span>Home</a></li>
-                            <li><a href="#about" className="hover:text-blue-400 transition-colors flex items-center"><span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 opacity-0 hover:opacity-100 transition-opacity"></span>About Us</a></li>
-                            <li><a href="#courses" className="hover:text-blue-400 transition-colors flex items-center"><span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 opacity-0 hover:opacity-100 transition-opacity"></span>Courses</a></li>
-                            <li><a href="#contact" className="hover:text-blue-400 transition-colors flex items-center"><span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 opacity-0 hover:opacity-100 transition-opacity"></span>Contact</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="text-white font-bold mb-6 text-lg">Categories</h4>
-                        <ul className="space-y-4 text-sm">
-                            {['Data Science', 'Machine Learning', 'Deep Learning', 'Artificial Intelligence'].map((link) => (
-                                <li key={link}><a href="#" className="hover:text-blue-400 transition-colors flex items-center"><span className="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2 opacity-0 hover:opacity-100 transition-opacity"></span>{link}</a></li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="text-white font-bold mb-6 text-lg">Newsletter</h4>
-                        <p className="text-sm mb-4 text-gray-500">Subscribe to get the latest updates and news.</p>
-                        <div className="flex flex-col space-y-3">
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
-                                <input type="email" placeholder="Your email" className="bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white text-sm transition-all" />
-                            </div>
-                            <button className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-bold text-sm shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-0.5">Subscribe Now</button>
-                        </div>
-                    </div>
                 </div>
-                <div className="container mx-auto px-6 md:px-12 mt-16 pt-8 border-t border-gray-800 text-center text-sm text-gray-600 flex flex-col md:flex-row justify-between items-center">
-                    <p>&copy; 2023 Quant X AI. All rights reserved.</p>
-                    <div className="flex space-x-6 mt-4 md:mt-0">
-                        <a href="#" className="hover:text-gray-400">Privacy Policy</a>
-                        <a href="#" className="hover:text-gray-400">Terms of Service</a>
-                        <a href="#" className="hover:text-gray-400">Cookie Policy</a>
-                    </div>
+
+                {/* Bottom Bar */}
+                <div className="container mx-auto px-6 md:px-12 mt-16 pt-8 border-t border-slate-900 text-center text-sm text-slate-600 flex justify-center items-center relative z-10">
+                    <p className="hover:text-slate-500 transition-colors">&copy; 2026 Genesys Quantis. All rights reserved.</p>
                 </div>
-            </footer >
+
+                {/* Optional: 'Back to Top' Button (could be implemented if scroll logic added, for now just a decorative suggestion if user wanted interactivity) */}
+                {/* <button className="absolute bottom-8 right-8 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:-translate-y-1 transition-transform animate-bounce-slow">
+                    <ArrowUp size={20} />
+                </button> */}
+            </footer>
 
             {/* Registration Form Modal */}
             {
@@ -836,6 +1503,32 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onCourseClick }) => 
                 )
             }
             {/* WhatsApp Floating Button */}
+
+            {/* Video Modal */}
+            {showVideoModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm transition-all duration-300">
+                    <div className="relative w-full max-w-5xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+                        <button
+                            onClick={() => setShowVideoModal(false)}
+                            className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all backdrop-blur-md"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                        <div className="relative pt-[56.25%] bg-black">
+                            <video
+                                className="absolute inset-0 w-full h-full object-cover"
+                                src="/Video.mp4"
+                                title="Platform Introduction"
+                                controls
+                                autoPlay
+                            >
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* WhatsApp Floating Button */}
             <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-semibold animate-fade-in-out hidden md:block border border-blue-500 relative shadow-blue-500/30">

@@ -455,7 +455,7 @@ const CoursePage: React.FC<CoursePageProps> = ({ onBack, onBuy, courseId = 'pyth
                                 onContextMenu={(e) => e.preventDefault()}
                                 poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'%3E%3Crect fill='%230f172a' width='800' height='450'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23475569' font-size='24' font-family='system-ui'%3ECourse Introduction%3C/text%3E%3C/svg%3E"
                             >
-                                <source src="/zerokost.mp4" type="video/mp4" />
+                                <source src="/Video.mp4" type="video/mp4" />
                                 Your browser does not support the video tag.
                             </video>
                         </div>
