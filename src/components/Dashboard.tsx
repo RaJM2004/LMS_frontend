@@ -7,7 +7,7 @@ import Header from './Header';
 const Certificate = lazy(() => import('./Certificate'));
 import Login from './Login';
 import Chatbot from './Chatbot';
-import { ArrowRight, CheckCircle, Play, MessageCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle, Play, MessageCircle, FileText, Video } from 'lucide-react';
 import CourseOverview from './CourseOverview';
 import AdminDashboard from './AdminDashboard';
 import { translations } from '../translations';
@@ -846,48 +846,168 @@ const Dashboard = () => {
                                             <div className="flex-1 flex flex-col justify-between animate-fadeIn">
                                                 <div>
                                                     <h3 className="text-2xl font-semibold mb-4 text-gray-800">{currentModule.sections[currentSectionIndex].title}</h3>
-                                                    {currentModule.sections[currentSectionIndex].pdfUrl ? (
-                                                        <div className="flex flex-col">
-                                                            <div className="w-full h-[600px] mb-6 rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                                                    {currentModule.sections[currentSectionIndex].pdfUrl && (
+                                                        <div className="flex flex-col mb-12 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                                                            <div className="bg-gray-50 border-b border-gray-100 p-4 flex justify-between items-center">
+                                                                <div className="flex items-center text-gray-700 font-medium">
+                                                                    <FileText size={20} className="mr-2 text-blue-600" />
+                                                                    <span>Course Document</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="w-full h-[80vh] bg-gray-50">
                                                                 <iframe
-                                                                    src={`${currentModule.sections[currentSectionIndex].pdfUrl}#toolbar=0`}
+                                                                    src={(() => {
+                                                                        let url = currentModule.sections[currentSectionIndex].pdfUrl;
+                                                                        if (url.includes('drive.google.com') && url.includes('/view')) {
+                                                                            return url.replace('/view', '/preview');
+                                                                        }
+                                                                        return `${url}#toolbar=0`;
+                                                                    })()}
                                                                     className="w-full h-full"
                                                                     title="PDF Viewer"
+                                                                    allow="autoplay"
                                                                 />
                                                             </div>
-                                                            {!pdfCompleted && (
-                                                                <div className="flex justify-center mb-6">
+                                                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                                                                {!pdfCompleted ? (
                                                                     <button
                                                                         onClick={() => setPdfCompleted(true)}
-                                                                        className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center shadow-md"
+                                                                        className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg flex items-center transform hover:scale-105"
                                                                     >
                                                                         <CheckCircle size={20} className="mr-2" />
-                                                                        I have read the complete document
+                                                                        Mark as Completed
                                                                     </button>
+                                                                ) : (
+                                                                    <div className="flex items-center text-green-700 font-bold bg-green-100 px-6 py-3 rounded-full border border-green-300 shadow-sm animate-fadeIn">
+                                                                        <CheckCircle size={22} className="mr-2" />
+                                                                        Document Status: Completed
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {currentModule.sections[currentSectionIndex].videoUrl && (
+                                                        <div className="mb-12">
+                                                            <div className="bg-slate-900 rounded-xl overflow-hidden shadow-2xl border border-slate-800">
+                                                                <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
+                                                                    <div className="flex items-center text-white font-medium">
+                                                                        <Video size={20} className="mr-2 text-blue-400" />
+                                                                        <span>Video Lesson</span>
+                                                                    </div>
                                                                 </div>
-                                                            )}
+
+                                                                {(() => {
+                                                                    const url = currentModule.sections[currentSectionIndex].videoUrl;
+                                                                    const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+                                                                    const isGoogleDrive = url.includes('drive.google.com');
+                                                                    const isOneDrive = url.includes('sharepoint.com') || url.includes('1drv.ms') || url.includes('onedrive.live.com');
+
+                                                                    if (isYoutube || isGoogleDrive || isOneDrive) {
+                                                                        // Embed Support
+                                                                        let embedSrc = url;
+                                                                        if (isYoutube) {
+                                                                            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                                                                            const match = url.match(regExp);
+                                                                            const videoId = (match && match[2].length === 11) ? match[2] : null;
+                                                                            embedSrc = `https://www.youtube.com/embed/${videoId}`;
+                                                                        } else if (isGoogleDrive && url.includes('/view')) {
+                                                                            embedSrc = url.replace('/view', '/preview');
+                                                                        }
+
+                                                                        return (
+                                                                            <div className="flex flex-col">
+                                                                                <div className="relative pt-[56.25%] w-full bg-black">
+                                                                                    <iframe
+                                                                                        className="absolute top-0 left-0 w-full h-full"
+                                                                                        src={embedSrc}
+                                                                                        title="Video Player"
+                                                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                                        allowFullScreen
+                                                                                    ></iframe>
+                                                                                </div>
+                                                                                <div className="p-4 bg-slate-800 flex justify-end border-t border-slate-700">
+                                                                                    {!videoCompleted ? (
+                                                                                        <button
+                                                                                            onClick={() => setVideoCompleted(true)}
+                                                                                            className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-lg"
+                                                                                        >
+                                                                                            Mark as Watched
+                                                                                        </button>
+                                                                                    ) : (
+                                                                                        <div className="flex items-center text-green-400 text-sm font-medium bg-slate-900/50 px-4 py-2 rounded-lg border border-green-900/30">
+                                                                                            <CheckCircle size={16} className="mr-2" />
+                                                                                            Watched
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    } else {
+                                                                        // Direct Video File
+                                                                        return (
+                                                                            <div className="flex flex-col">
+                                                                                <video
+                                                                                    controls
+                                                                                    controlsList="nodownload"
+                                                                                    className="w-full bg-black aspect-video"
+                                                                                    onEnded={handleVideoEnded}
+                                                                                    onContextMenu={(e) => e.preventDefault()}
+                                                                                    onError={(e) => {
+                                                                                        const target = e.target as HTMLVideoElement;
+                                                                                        target.style.display = 'none';
+                                                                                        const errorMsg = document.getElementById(`video-error-${currentSectionIndex}`);
+                                                                                        if (errorMsg) errorMsg.style.display = 'block';
+                                                                                    }}
+                                                                                >
+                                                                                    <source src={url} />
+                                                                                    Your browser does not support the video tag.
+                                                                                </video>
+
+                                                                                <div id={`video-error-${currentSectionIndex}`} className="hidden bg-slate-800 text-red-400 p-6 border-t border-slate-700">
+                                                                                    <p className="font-bold mb-2">Video Unavailable</p>
+                                                                                    <p className="text-sm mb-4 text-slate-300">The video stream failed to load. Please try opening it directly.</p>
+                                                                                    <a
+                                                                                        href={url}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="text-blue-400 hover:text-blue-300 text-sm font-medium inline-flex items-center underline"
+                                                                                    >
+                                                                                        Open Video <ArrowRight size={14} className="ml-1" />
+                                                                                    </a>
+                                                                                    <div className="mt-4 pt-4 border-t border-slate-700">
+                                                                                        <button
+                                                                                            onClick={() => setVideoCompleted(true)}
+                                                                                            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                                                                                        >
+                                                                                            Skip this video
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {/* For direct videos, button APPEARS ONLY when videoCompleted is true (from onEnded) */}
+                                                                                {videoCompleted && (
+                                                                                    <div className="p-4 bg-slate-800 border-t border-slate-700 flex justify-end animate-fadeIn">
+                                                                                        <div className="flex items-center text-green-400 text-sm font-medium bg-slate-900/50 px-4 py-2 rounded-lg border border-green-900/30">
+                                                                                            <CheckCircle size={16} className="mr-2" />
+                                                                                            Video Watched & Completed
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                })()}
+                                                            </div>
                                                         </div>
-                                                    ) : currentModule.sections[currentSectionIndex].videoUrl ? (
-                                                        <div className="mb-6">
-                                                            <video
-                                                                controls
-                                                                controlsList="nodownload"
-                                                                className="w-full rounded-lg shadow-md"
-                                                                onEnded={handleVideoEnded}
-                                                                onContextMenu={(e) => e.preventDefault()}
-                                                            >
-                                                                <source src={currentModule.sections[currentSectionIndex].videoUrl} type="video/mp4" />
-                                                                Your browser does not support the video tag.
-                                                            </video>
-                                                        </div>
-                                                    ) : (
-                                                        currentModule.sections[currentSectionIndex].image && (
-                                                            <img
-                                                                src={currentModule.sections[currentSectionIndex].image}
-                                                                alt="Topic"
-                                                                className="w-full h-64 object-cover rounded-lg mb-6 shadow-md"
-                                                            />
-                                                        )
+                                                    )}
+
+                                                    {currentModule.sections[currentSectionIndex].image && (
+                                                        <img
+                                                            src={currentModule.sections[currentSectionIndex].image}
+                                                            alt="Topic"
+                                                            className="w-full h-64 object-cover rounded-lg mb-8 shadow-md"
+                                                        />
                                                     )}
                                                     <div className="prose max-w-none text-gray-700 text-lg leading-relaxed">
                                                         <ReactMarkdown>{currentModule.sections[currentSectionIndex].content}</ReactMarkdown>
