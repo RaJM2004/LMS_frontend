@@ -4,30 +4,89 @@
 
 This project is a comprehensive **Learning Management System (LMS)** designed to provide a seamless educational experience for students and a powerful management interface for administrators. It features a modern, responsive frontend built with **React & TypeScript** and a robust backend powered by **Node.js, Express, and MongoDB**.
 
-The platform includes features like course enrollment, progress tracking, certification, AI-powered assistance, and a specialized admin dashboard.
-
 ---
 
 ## 🏗️ High-Level Architecture
 
-The application follows a **Client-Server Architecture** (MERN Stack):
+The application follows a **Client-Server Architecture** (MERN Stack). Below is the high-level architecture diagram:
 
-1.  **Frontend (Client)**:
-    -   Built with **React (Vite)** + **TypeScript**.
-    -   Uses **Tailwind CSS** for styling.
-    -   Manages state and API calls to the backend.
-    -   Handles routing via **React Router**.
-    -   Features distinct layouts for *Landing Page*, *User Dashboard*, and *Admin Dashboard*.
+```mermaid
+graph TD
+    User([User / Browser])
+    
+    subgraph Frontend ["Frontend (React + Vite)"]
+        UI[User Interface / Components]
+        State[State Management]
+        Routing[React Router]
+    end
+    
+    subgraph Backend ["Backend (Node.js + Express)"]
+        API[API Routes]
+        Auth[JWT Authentication]
+        Logic[Business Logic / Controllers]
+    end
+    
+    subgraph Database ["Data Layer"]
+        Mongo[(MongoDB)]
+    end
 
-2.  **Backend (Server)**:
-    -   Built with **Node.js** + **Express**.
-    -   Written in **TypeScript** for type safety.
-    -   Uses **MongoDB (Mongoose)** for data storage.
-    -   Exposes **RESTful APIs** for the frontend to consume.
-    -   Handles authentication (JWT), data validation, and business logic.
+    User -->|Interacts| UI
+    UI -->|Navigates| Routing
+    UI -->|Dispatches Actions| State
+    State -->|HTTP Requests (Axios/Fetch)| API
+    
+    API -->|Validates Token| Auth
+    API -->|Processes Request| Logic
+    Logic -->|Query/Update| Mongo
+    Mongo -->|Returns Data| Logic
+    Logic -->|JSON Response| State
+    State -->|Updates UI| UI
+```
 
-3.  **Database**:
-    -   **MongoDB** stores Users, Courses, Modules, Progress, and Certificates.
+---
+
+## 🔄 User Workflow
+
+The following diagram illustrates the typical user journey from visiting the landing page to earning a certificate:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student
+    participant Client as Frontend Interface
+    participant API as Backend API
+    participant DB as MongoDB
+
+    Note over Student, Client: Onboarding Phase
+    Student->>Client: Visits Landing Page
+    Student->>Client: Clicks "Get Started" / "Register"
+    Client->>API: POST /api/auth/register
+    API->>DB: Create User Record
+    DB-->>API: Success
+    API-->>Client: Returns JWT Token
+    
+    Note over Student, Client: Learning Phase
+    Client->>Student: Redirects to User Dashboard
+    Student->>Client: Selects Enrolled Course
+    Client->>API: GET /api/courses/:id/modules
+    API->>DB: Fetch Course Content
+    DB-->>API: Course Data
+    API-->>Client: Helper Content & Video Links
+    
+    loop Content Consumption
+        Student->>Client: Watches Video / Reads Material
+        Client->>API: POST /api/progress/update
+        API->>DB: Update Completion Status
+    end
+    
+    Note over Student, Client: Certification Phase
+    Student->>Client: Completes 100% of Course
+    Client->>API: POST /api/certificates/generate
+    API->>DB: Create Certificate Record
+    DB-->>API: Certificate ID
+    API-->>Client: Certificate URL
+    Client->>Student: Displays Verified Certificate
+```
 
 ---
 
@@ -67,7 +126,6 @@ The application follows a **Client-Server Architecture** (MERN Stack):
 -   **Icons**: Lucide React
 -   **Routing**: React Router DOM
 -   **State Management**: React Hooks (useState, useEffect, useContext)
--   **HTTP Client**: Fetch API / Axios (implied)
 
 ### Backend
 -   **Runtime**: Node.js
@@ -75,7 +133,6 @@ The application follows a **Client-Server Architecture** (MERN Stack):
 -   **Language**: TypeScript
 -   **Database**: MongoDB (Mongoose ODM)
 -   **Auth**: JSON Web Tokens (JWT), Bcrypt
--   **Utilities**: Cors, Dotenv
 
 ---
 
@@ -89,8 +146,7 @@ src/
 │   ├── Dashboard.tsx    # Student area
 │   ├── AdminDashboard.tsx # Admin controls
 │   ├── CoursePage.tsx   # Course content player
-│   ├── Certificate.tsx  # Certificate view
-│   └── ...
+│   └── Certificate.tsx  # Certificate view
 ├── assets/             # Static assets (images, logos)
 ├── translations.ts     # Multi-language support
 ├── App.tsx             # Main application component & Routing
@@ -102,36 +158,10 @@ src/
 src/
 ├── models/             # Mongoose schemas (User, Course, Order)
 ├── routes/             # API Route definitions
-│   ├── userRoutes.ts
-│   ├── courseRoutes.ts
-│   ├── certificateRoutes.ts
-│   └── ...
 ├── data/               # Seed data for initialization
 ├── index.ts            # Server entry point
 └── create_admin.ts     # Script to seed admin user
 ```
-
----
-
-## 🚀 Workflow & Usage
-
-1.  **Landing & Registration**:
-    -   Users arrive at the **Landing Page**, browse courses, and testimonials.
-    -   New users sign up via the **Registration Modal**.
-    -   Existing users log in to access their dashboard.
-
-2.  **Learning Journey**:
-    -   From the **Dashboard**, students select an enrolled course.
-    -   The **Course Page** loads modules and content.
-    -   As they complete sections, progress is saved to the backend.
-
-3.  **Completion & Certification**:
-    -   Upon 100% completion, a **Certificate** is generated.
-    -   This certificate can be viewed, downloaded, and verified publicly.
-
-4.  **Administration**:
-    -   Admins log in to the **Admin Dashboard**.
-    -   They can add new courses, update content, and manage user accounts.
 
 ---
 
@@ -176,8 +206,3 @@ npm run dev
 
 -   **Frontend**: [https://github.com/RaJM2004/LMS_frontend.git](https://github.com/RaJM2004/LMS_frontend.git)
 -   **Backend**: [https://github.com/RaJM2004/LMS_backend.git](https://github.com/RaJM2004/LMS_backend.git)
-
----
-
-## 📧 Contact
-For support or inquiries, please contact the development team.
