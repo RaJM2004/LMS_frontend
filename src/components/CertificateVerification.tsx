@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Search, CheckCircle, XCircle, Award, ArrowRight, ShieldCheck } from 'lucide-react';
 import Certificate from './Certificate';
@@ -30,8 +31,7 @@ const CertificateVerification: React.FC = () => {
         setVerificationResult(null);
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'https://lms-backend-vzds.onrender.com';
-            const response = await fetch(`${API_URL}/api/certificate/verify/${certId}`);
+            const response = await fetch(`${API_BASE_URL}/api/certificate/verify/${certId}`);
             const data = await response.json();
 
             if (data.valid) {

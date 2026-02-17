@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
-import { Users, BookOpen, Plus, Edit, Trash2, Save, X, BarChart2, Search, LayoutDashboard, FileText, Video, LogOut } from 'lucide-react';
+import { Users, BookOpen, Plus, Edit, Trash2, Save, X, BarChart2, Search, LayoutDashboard, FileText, Video, LogOut, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 interface User {
     _id: string;
@@ -16,6 +16,12 @@ interface User {
         totalQuestions: number;
         percentage: number;
     }[];
+    referredBy?: string;
+    finalAssessment?: {
+        score: number;
+        passed: boolean;
+        attempts: number;
+    };
 }
 
 interface Section {
@@ -36,17 +42,36 @@ interface Module {
     output?: string;
 }
 
+interface ModuleUpdate {
+    _id: string;
+    moduleId: string;
+    title: string;
+    courseId?: string;
+    instructorEmail: string;
+    status: 'pending' | 'approved' | 'rejected';
+    submittedAt: string;
+    adminComment?: string;
+    updates: {
+        sections: Section[];
+        code?: string;
+        mcqs?: any[];
+    };
+}
+
 interface AdminDashboardProps {
     onLogout?: () => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'modules'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'modules' | 'updates'>('dashboard');
     const [users, setUsers] = useState<User[]>([]);
     const [modules, setModules] = useState<Module[]>([]);
+    const [pendingUpdates, setPendingUpdates] = useState<ModuleUpdate[]>([]);
     const [showModuleModal, setShowModuleModal] = useState(false);
     const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
     const [editingModule, setEditingModule] = useState<Module | null>(null);
+    const [selectedUpdate, setSelectedUpdate] = useState<ModuleUpdate | null>(null);
+    const [reviewTab, setReviewTab] = useState<'sections' | 'code' | 'mcqs'>('sections');
 
     // User Editing State
     const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -107,7 +132,56 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     useEffect(() => {
         fetchUsers();
         fetchModules();
+        fetchPendingUpdates();
     }, []);
+
+    const fetchPendingUpdates = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/instructor/pending-updates`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setPendingUpdates(data);
+            } else {
+                setPendingUpdates([]);
+            }
+        } catch (error) {
+            console.error("Error fetching updates:", error);
+        }
+    };
+
+    const handleApproveUpdate = async (id: string) => {
+        if (!confirm("Are you sure you want to approve this update?")) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/instructor/approve-update/${id}`, { method: 'POST' });
+            if (res.ok) {
+                alert("Update approved!");
+                fetchPendingUpdates();
+                fetchModules(); // Refresh modules
+            } else {
+                alert("Failed to approve update");
+            }
+        } catch (error) {
+            console.error("Error approving:", error);
+        }
+    };
+
+    const handleRejectUpdate = async (id: string) => {
+        const reason = prompt("Enter rejection reason:");
+        if (reason === null) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/instructor/reject-update/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+            if (res.ok) {
+                alert("Update rejected.");
+                fetchPendingUpdates();
+            }
+        } catch (error) {
+            console.error("Error rejecting:", error);
+        }
+    };
 
     const fetchUsers = async () => {
         try {
@@ -303,6 +377,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                         <BookOpen size={20} />
                         <span>Course Content</span>
                     </button>
+                    <button
+                        onClick={() => setActiveTab('updates')}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'updates' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            }`}
+                    >
+                        <Clock size={20} />
+                        <span>Review Updates</span>
+                    </button>
                 </nav>
                 <div className="p-4 border-t border-gray-800">
                     <div className="flex items-center space-x-3 mb-4">
@@ -417,88 +499,110 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                                     Add New User
                                 </button>
                             </div>
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        <th className="px-6 py-4 font-semibold text-gray-600">User</th>
-                                        <th className="px-6 py-4 font-semibold text-gray-600">Role</th>
-                                        <th className="px-6 py-4 font-semibold text-gray-600">Progress</th>
-                                        <th className="px-6 py-4 font-semibold text-gray-600 text-center">Quiz Avg</th>
-                                        <th className="px-6 py-4 font-semibold text-gray-600">Enrolled Courses</th>
-                                        <th className="px-6 py-4 font-semibold text-gray-600">Modules Completed</th>
-                                        <th className="px-6 py-4 font-semibold text-gray-600">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {users.map(user => {
-                                        const avgQuizScore = user.quizScores && user.quizScores.length > 0
-                                            ? Math.round(user.quizScores.reduce((acc, curr) => acc + curr.percentage, 0) / user.quizScores.length)
-                                            : null;
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left whitespace-nowrap">
+                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">User</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Role</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Progress</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600 text-center">Quiz Avg</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600 text-center">Assessment</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Enrolled Courses</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Referred By</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Modules Completed</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600 sticky right-0 bg-gray-50 shadow-sm z-10">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {users.map(user => {
+                                            const avgQuizScore = user.quizScores && user.quizScores.length > 0
+                                                ? Math.round(user.quizScores.reduce((acc, curr) => acc + curr.percentage, 0) / user.quizScores.length)
+                                                : null;
 
-                                        return (
-                                            <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center">
-                                                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold mr-3">
-                                                            {user.fullName ? user.fullName[0].toUpperCase() : user.email[0].toUpperCase()}
+                                            return (
+                                                <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center">
+                                                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold mr-3 flex-shrink-0">
+                                                                {user.fullName ? user.fullName[0].toUpperCase() : user.email[0].toUpperCase()}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-gray-900">{user.fullName || 'N/A'}</p>
+                                                                <p className="text-sm text-gray-500">{user.email}</p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="font-medium text-gray-900">{user.fullName || 'N/A'}</p>
-                                                            <p className="text-sm text-gray-500">{user.email}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                        {user.role || 'user'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="w-full bg-gray-200 rounded-full h-2.5 max-w-[140px]">
-                                                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${user.progress}%` }}></div>
-                                                    </div>
-                                                    <span className="text-xs text-gray-500 mt-1 block">{user.progress}%</span>
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {avgQuizScore !== null ? (
-                                                        <span className={`font-bold ${avgQuizScore >= 80 ? 'text-green-600' : avgQuizScore >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                                            {avgQuizScore}%
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                            {user.role || 'user'}
                                                         </span>
-                                                    ) : (
-                                                        <span className="text-gray-400 text-sm">No Quizzes</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {(user.enrolledCourses || []).map(cid => (
-                                                            <span key={cid} className="px-2 py-1 text-xs rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                                                {courseNames[cid] || cid}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="w-full bg-gray-200 rounded-full h-2.5 min-w-[100px] max-w-[140px]">
+                                                            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${user.progress}%` }}></div>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500 mt-1 block">{user.progress}%</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {avgQuizScore !== null ? (
+                                                            <span className={`font-bold ${avgQuizScore >= 80 ? 'text-green-600' : avgQuizScore >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                                {avgQuizScore}%
                                                             </span>
-                                                        ))}
-                                                        {(!user.enrolledCourses || user.enrolledCourses.length === 0) && (
-                                                            <span className="text-xs text-gray-400 italic">None</span>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-sm">No Quizzes</span>
                                                         )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-gray-600">
-                                                    {user.completedModules.length}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex space-x-2">
-                                                        <button
-                                                            onClick={() => handleEditUser(user)}
-                                                            className="text-gray-400 hover:text-blue-600 transition-colors"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
-                                                        {/* Add delete button here if needed in future */}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {user.finalAssessment ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className={`font-bold ${user.finalAssessment.passed ? 'text-green-600' : 'text-red-600'}`}>
+                                                                    {user.finalAssessment.score}%
+                                                                </span>
+                                                                <span className="text-xs text-gray-500">
+                                                                    {user.finalAssessment.passed ? 'Passed' : 'Failed'} ({user.finalAssessment.attempts} attempts)
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-sm">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                                            {(user.enrolledCourses || []).map(cid => (
+                                                                <span key={cid} className="px-2 py-1 text-xs rounded bg-indigo-50 text-indigo-700 border border-indigo-100 whitespace-nowrap">
+                                                                    {courseNames[cid] || cid}
+                                                                </span>
+                                                            ))}
+                                                            {(!user.enrolledCourses || user.enrolledCourses.length === 0) && (
+                                                                <span className="text-xs text-gray-400 italic">None</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-600">
+                                                        {user.referredBy || '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-600 text-center">
+                                                        {user.completedModules.length}
+                                                    </td>
+                                                    <td className="px-6 py-4 sticky right-0 bg-white shadow-sm z-10 border-l border-gray-100">
+                                                        <div className="flex space-x-2 justify-center">
+                                                            <button
+                                                                onClick={() => handleEditUser(user)}
+                                                                className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                                                                title="Edit User"
+                                                            >
+                                                                <Edit size={18} />
+                                                            </button>
+                                                            {/* Add delete button here if needed in future */}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
 
@@ -581,8 +685,247 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                             </div>
                         </div>
                     )}
+
+                    {activeTab === 'updates' && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fadeIn">
+                            <div className="p-6 border-b border-gray-100">
+                                <h3 className="text-xl font-bold text-gray-800">Pending Instructor Updates</h3>
+                                <p className="text-sm text-gray-500">Review content changes submitted by instructors.</p>
+                            </div>
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Module</th>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Instructor</th>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Submitted At</th>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {pendingUpdates.map(update => (
+                                        <tr key={update._id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="font-bold text-gray-800">{update.title}</p>
+                                                    <p className="text-xs text-gray-500">{courseNames[update.courseId || 'python-ai-course'] || update.courseId}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{update.instructorEmail}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{new Date(update.submittedAt).toLocaleString()}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => setSelectedUpdate(update)}
+                                                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-200 transition-colors flex items-center"
+                                                    >
+                                                        <BookOpen size={14} className="mr-1" /> Review
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {pendingUpdates.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-400">No pending updates.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </main>
             </div>
+
+            {/* Review Update Modal */}
+            {selectedUpdate && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-2xl w-[95%] max-w-7xl max-h-[90vh] overflow-hidden flex flex-col animate-fadeIn">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800">Review Update: {selectedUpdate.title}</h3>
+                                <p className="text-sm text-gray-500">Submitted by {selectedUpdate.instructorEmail}</p>
+                            </div>
+                            <button onClick={() => setSelectedUpdate(null)} className="text-gray-400 hover:text-gray-600">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+
+                            {/* Review Tabs */}
+                            <div className="flex border-b border-gray-200 bg-white sticky top-0 z-10">
+                                <button
+                                    onClick={() => setReviewTab('sections')}
+                                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${reviewTab === 'sections' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Sections
+                                </button>
+                                <button
+                                    onClick={() => setReviewTab('code')}
+                                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${reviewTab === 'code' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Code & Output
+                                </button>
+                                <button
+                                    onClick={() => setReviewTab('mcqs')}
+                                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${reviewTab === 'mcqs' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    MCQs
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6 h-full p-4 overflow-y-auto">
+                                {/* Original Content */}
+                                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 overflow-y-auto max-h-[60vh]">
+                                    <h4 className="font-bold text-gray-700 mb-4 border-b pb-2 flex items-center sticky top-0 bg-white z-10">
+                                        <div className="w-2 h-2 rounded-full bg-gray-400 mr-2"></div>
+                                        Current Live Content
+                                    </h4>
+
+                                    {reviewTab === 'sections' && (
+                                        modules.find(m => m.id === selectedUpdate.moduleId)?.sections.map((section, idx) => (
+                                            <div key={idx} className="mb-6 border-b border-gray-100 pb-4 last:border-0">
+                                                <h5 className="font-bold text-sm text-gray-600 mb-2">{section.title}</h5>
+                                                <div className="text-xs text-gray-500 font-mono bg-gray-50 p-3 rounded mb-2 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                                    {section.content}
+                                                </div>
+                                                {(section.videoUrl || section.pdfUrl) && (
+                                                    <div className="flex items-center space-x-4 text-xs text-gray-400">
+                                                        {section.videoUrl && <span className="flex items-center"><Video size={10} className="mr-1" /> Video Attached</span>}
+                                                        {section.pdfUrl && <span className="flex items-center"><FileText size={10} className="mr-1" /> PDF Attached</span>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )) || <div className="text-gray-400 italic text-sm">No sections found.</div>
+                                    )}
+
+                                    {reviewTab === 'code' && (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h5 className="font-bold text-sm text-gray-600 mb-1">Code</h5>
+                                                <pre className="text-xs text-gray-300 font-mono bg-gray-900 p-3 rounded mb-2 overflow-x-auto">
+                                                    {modules.find(m => m.id === selectedUpdate.moduleId)?.code || '// No code'}
+                                                </pre>
+                                            </div>
+                                            <div>
+                                                <h5 className="font-bold text-sm text-gray-600 mb-1">Expected Output</h5>
+                                                <pre className="text-xs text-gray-300 font-mono bg-black p-3 rounded overflow-x-auto">
+                                                    {modules.find(m => m.id === selectedUpdate.moduleId)?.output || '// No output'}
+                                                </pre>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {reviewTab === 'mcqs' && (
+                                        <div className="space-y-4">
+                                            {(modules.find(m => m.id === selectedUpdate.moduleId) as any)?.mcqs?.map((mcq: any, idx: number) => (
+                                                <div key={idx} className="border border-gray-200 p-3 rounded-lg">
+                                                    <p className="font-bold text-gray-700 text-sm mb-2">{idx + 1}. {mcq.question}</p>
+                                                    <ul className="list-disc pl-5 text-xs text-gray-600 space-y-1">
+                                                        {mcq.options.map((opt: string, i: number) => (
+                                                            <li key={i} className={i === mcq.correctAnswer ? "text-green-600 font-bold" : ""}>
+                                                                {opt}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )) || <div className="text-gray-400 italic text-sm">No MCQs found.</div>}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* New Content */}
+                                <div className="bg-blue-50 p-6 rounded-lg shadow-sm border border-blue-100 overflow-y-auto max-h-[60vh]">
+                                    <h4 className="font-bold text-blue-700 mb-4 border-b border-blue-200 pb-2 flex items-center sticky top-0 bg-blue-50 z-10">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                                        Proposed Update
+                                    </h4>
+
+                                    {reviewTab === 'sections' && (
+                                        selectedUpdate.updates.sections?.map((section, idx) => (
+                                            <div key={idx} className="mb-6 border-b border-blue-100 pb-4 last:border-0">
+                                                <h5 className="font-bold text-sm text-blue-800 mb-2">{section.title}</h5>
+                                                <div className="text-xs text-blue-900 font-mono bg-white p-3 rounded mb-2 whitespace-pre-wrap max-h-40 overflow-y-auto border border-blue-100">
+                                                    {section.content}
+                                                </div>
+                                                {(section.videoUrl || section.pdfUrl) && (
+                                                    <div className="flex items-center space-x-4 text-xs text-blue-500 p-2 bg-blue-100 rounded">
+                                                        {section.videoUrl && (
+                                                            <span className="flex items-center truncate max-w-[200px]" title={section.videoUrl}>
+                                                                <Video size={12} className="mr-1" /> {section.videoUrl}
+                                                            </span>
+                                                        )}
+                                                        {section.pdfUrl && (
+                                                            <span className="flex items-center truncate max-w-[200px]" title={section.pdfUrl}>
+                                                                <FileText size={12} className="mr-1" /> {section.pdfUrl}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )) || <div className="text-blue-400 italic text-sm">No sections in update.</div>
+                                    )}
+
+                                    {reviewTab === 'code' && (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h5 className="font-bold text-sm text-blue-800 mb-1">Code</h5>
+                                                <pre className="text-xs text-gray-300 font-mono bg-gray-900 p-3 rounded mb-2 overflow-x-auto border border-blue-200">
+                                                    {selectedUpdate.updates.code || '// No code changes'}
+                                                </pre>
+                                            </div>
+                                            <div>
+                                                <h5 className="font-bold text-sm text-blue-800 mb-1">Expected Output</h5>
+                                                <pre className="text-xs text-gray-300 font-mono bg-black p-3 rounded overflow-x-auto border border-blue-200">
+                                                    {selectedUpdate.updates.output || '// No output changes'}
+                                                </pre>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {reviewTab === 'mcqs' && (
+                                        <div className="space-y-4">
+                                            {selectedUpdate.updates.mcqs?.map((mcq: any, idx: number) => (
+                                                <div key={idx} className="border border-blue-200 p-3 rounded-lg bg-white">
+                                                    <p className="font-bold text-blue-800 text-sm mb-2">{idx + 1}. {mcq.question}</p>
+                                                    <ul className="list-disc pl-5 text-xs text-blue-900 space-y-1">
+                                                        {mcq.options.map((opt: string, i: number) => (
+                                                            <li key={i} className={i === mcq.correctAnswer ? "text-green-600 font-bold bg-green-50 rounded px-1" : ""}>
+                                                                {opt}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )) || <div className="text-blue-400 italic text-sm">No MCQs in update.</div>}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-100 bg-white flex justify-end space-x-3">
+                            <button
+                                onClick={() => {
+                                    handleRejectUpdate(selectedUpdate._id);
+                                    setSelectedUpdate(null);
+                                }}
+                                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-bold hover:bg-red-200 transition-colors flex items-center border border-red-200"
+                            >
+                                <XCircle size={18} className="mr-2" /> Reject Update
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleApproveUpdate(selectedUpdate._id);
+                                    setSelectedUpdate(null);
+                                }}
+                                className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-md flex items-center"
+                            >
+                                <CheckCircle size={18} className="mr-2" /> Approve & Publish
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Module Modal */}
             {showModuleModal && (
@@ -810,6 +1153,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                                     className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                 >
                                     <option value="user">User</option>
+                                    <option value="instructor">Instructor</option>
                                     <option value="admin">Admin</option>
                                 </select>
                             </div>

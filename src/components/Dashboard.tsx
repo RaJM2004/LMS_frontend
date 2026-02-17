@@ -7,9 +7,10 @@ import Header from './Header';
 const Certificate = lazy(() => import('./Certificate'));
 import Login from './Login';
 import Chatbot from './Chatbot';
-import { ArrowRight, CheckCircle, Play, MessageCircle, FileText, Video } from 'lucide-react';
+import { ArrowRight, CheckCircle, Play, MessageCircle, FileText, Video, Target, Award } from 'lucide-react';
 import CourseOverview from './CourseOverview';
 import AdminDashboard from './AdminDashboard';
+import InstructorDashboard from './InstructorDashboard';
 import { translations } from '../translations';
 
 const courseNames: Record<string, string> = {
@@ -34,7 +35,7 @@ const Dashboard = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isWindowBlurred, setIsWindowBlurred] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [user, setUser] = useState<{ email: string; fullName?: string; completedModules?: string[]; state?: string; language?: string; dob?: string; gender?: string; role?: string; isPaid?: boolean; enrolledCourses?: string[] } | null>(null);
+    const [user, setUser] = useState<{ email: string; fullName?: string; completedModules?: string[]; state?: string; language?: string; dob?: string; gender?: string; role?: string; isPaid?: boolean; enrolledCourses?: string[]; finalAssessment?: { score: number; passed: boolean; attempts: number; }; courseAssessments?: { courseId: string; score: number; passed: boolean; attempts: number; }[] } | null>(null);
     const [currentModule, setCurrentModule] = useState<any>(null);
     const [modules, setModules] = useState<any[]>([]);
     const [showOutput, setShowOutput] = useState(false);
@@ -50,7 +51,13 @@ const Dashboard = () => {
     const [fullName, setFullName] = useState('');
 
     // View State
-    const [view, setView] = useState<'course' | 'settings' | 'admin' | 'certificate'>('course');
+    const [view, setView] = useState<'course' | 'settings' | 'admin' | 'certificate' | 'instructor' | 'assessment'>('course');
+
+    // Assessment State
+    const [assessmentQuestions, setAssessmentQuestions] = useState<any[]>([]);
+    const [assessmentAnswers, setAssessmentAnswers] = useState<Record<number, string>>({});
+    const [assessmentResult, setAssessmentResult] = useState<{ score: number; passed: boolean; feedback: string } | null>(null);
+    const [isAssessmentLoading, setIsAssessmentLoading] = useState(false);
 
     // Settings Form State
     const [settingsName, setSettingsName] = useState('');
@@ -105,6 +112,8 @@ const Dashboard = () => {
                     localStorage.setItem('user', JSON.stringify(data)); // Update local storage with fresh data
                     if (data.role === 'admin') {
                         setView('admin');
+                    } else if (data.role === 'instructor') {
+                        setView('instructor');
                     }
                 } else {
                     handleLogout(); // Force logout if not paid
@@ -327,6 +336,8 @@ const Dashboard = () => {
                 localStorage.setItem('user', JSON.stringify(data)); // Persist session
                 if (data.role === 'admin') {
                     setView('admin');
+                } else if (data.role === 'instructor') {
+                    setView('instructor');
                 }
             } else {
                 // Show error from backend (e.g., "User not found" or "Payment not completed")
@@ -340,6 +351,61 @@ const Dashboard = () => {
             setUser(null);
         } finally {
             setIsLoggingIn(false);
+        }
+    };
+
+    const startAssessment = async () => {
+        setIsAssessmentLoading(true);
+        setView('assessment');
+        setAssessmentResult(null);
+        setAssessmentAnswers({});
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/assessment/generate?courseId=${activeCourseId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAssessmentQuestions(data);
+            } else {
+                console.error("Failed to fetch assessment");
+            }
+        } catch (error) {
+            console.error("Error starting assessment", error);
+        } finally {
+            setIsAssessmentLoading(false);
+        }
+    };
+
+    const submitAssessment = async () => {
+        setIsAssessmentLoading(true);
+
+        // Transform answers format
+        const formattedAnswers = Object.entries(assessmentAnswers).map(([qId, answer]) => ({
+            questionId: parseInt(qId),
+            selectedOption: answer
+        }));
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/assessment/submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: user?.email,
+                    questions: assessmentQuestions,
+                    answers: formattedAnswers,
+                    courseId: activeCourseId
+                })
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                setAssessmentResult(result);
+                // Refresh user data to update sidebar status
+                if (user?.email) fetchUserFromBackend(user.email);
+            }
+        } catch (error) {
+            console.error("Error submitting assessment", error);
+        } finally {
+            setIsAssessmentLoading(false);
         }
     };
 
@@ -501,6 +567,15 @@ const Dashboard = () => {
         window.scrollTo(0, 0);
     };
 
+    // Calculate Progress for CURRENT Active Course
+    const courseProgress = useMemo(() => {
+        if (!modules || modules.length === 0 || !user) return 0;
+        const currentCourseModules = modules.filter(m => (m.courseId || 'python-ai-course') === activeCourseId);
+        if (currentCourseModules.length === 0) return 0;
+        const completedCount = currentCourseModules.filter(m => user.completedModules?.includes(m.id)).length;
+        return (completedCount / currentCourseModules.length) * 100;
+    }, [user, modules, activeCourseId]);
+
     // Calculate Completed Courses for Certificate
     const completedCourses = useMemo(() => {
         if (!user || !user.completedModules || modules.length === 0) return [];
@@ -522,12 +597,21 @@ const Dashboard = () => {
         return completed;
     }, [user, modules]);
 
+    // Reset Certificate Tab when changing course
+    useEffect(() => {
+        setViewCertificateId(null);
+    }, [activeCourseId]);
+
     if (!user) {
         return <Login onLogin={handleLogin} isLoading={isLoggingIn} />;
     }
 
     if (view === 'admin') {
         return <AdminDashboard onLogout={handleLogout} />;
+    }
+
+    if (view === 'instructor') {
+        return <InstructorDashboard onLogout={handleLogout} userEmail={user.email} />;
     }
 
 
@@ -570,7 +654,7 @@ const Dashboard = () => {
 
             <div className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:sticky md:top-0 md:h-screen md:translate-x-0 transition duration-200 ease-in-out z-50 md:block`}>
                 <Sidebar
-                    progress={progress}
+                    progress={courseProgress}
                     lessons={modules
                         .filter(m => (m.courseId || 'python-ai-course') === activeCourseId)
                         .map((m, index, arr) => ({
@@ -594,6 +678,7 @@ const Dashboard = () => {
                         setView('settings');
                         setIsMobileMenuOpen(false);
                     }}
+                    assessmentPassed={user?.courseAssessments?.some(a => a.courseId === activeCourseId && a.passed) || (activeCourseId === 'python-ai-course' && user?.finalAssessment?.passed)}
                     language={settingsLanguage}
                     isAdmin={user?.role === 'admin'}
                     onAdminClick={() => {
@@ -601,9 +686,15 @@ const Dashboard = () => {
                         setIsMobileMenuOpen(false);
                     }}
                     onCertificateClick={() => {
-                        setView('certificate');
+                        const isPassed = user?.courseAssessments?.some(a => a.courseId === activeCourseId && a.passed) || (activeCourseId === 'python-ai-course' && user?.finalAssessment?.passed);
+                        if (isPassed) {
+                            setView('certificate');
+                        } else {
+                            startAssessment();
+                        }
                         setIsMobileMenuOpen(false);
                     }}
+                    currentScore={user?.courseAssessments?.find(a => a.courseId === activeCourseId)?.score || (activeCourseId === 'python-ai-course' ? user?.finalAssessment?.score : undefined)}
                     courses={(user?.enrolledCourses || (user?.isPaid ? ['python-ai-course'] : []))
                         .filter(cid => Object.keys(courseNames).includes(cid))
                         .map(cid => ({
@@ -778,6 +869,127 @@ const Dashboard = () => {
                             </div>
                         </div>
                     )}
+
+                    {view === 'assessment' && (
+                        <div className="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-lg border border-gray-100 animate-fadeIn min-h-[600px]">
+                            {isAssessmentLoading ? (
+                                <div className="flex flex-col items-center justify-center h-96">
+                                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+                                    <p className="text-xl font-medium text-gray-600 animate-pulse">
+                                        {assessmentResult ? "Grading your assessment with AI..." : "Generating your personalized assessment..."}
+                                    </p>
+                                </div>
+                            ) : assessmentResult ? (
+                                <div className="flex flex-col items-center justify-center text-center py-10">
+                                    <div className={`p-6 rounded-full mb-6 ${assessmentResult.passed ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                        {assessmentResult.passed ? <CheckCircle size={64} /> : <Target size={64} />}
+                                    </div>
+                                    <h2 className="text-4xl font-bold text-gray-800 mb-2">
+                                        {assessmentResult.passed ? "Congratulations!" : "Keep Learning!"}
+                                    </h2>
+                                    <p className="text-xl text-gray-600 mb-8">
+                                        You scored <span className={`font-bold ${assessmentResult.passed ? 'text-green-600' : 'text-red-600'}`}>{assessmentResult.score}%</span>
+                                    </p>
+
+                                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 max-w-2xl w-full text-left">
+                                        <h3 className="font-bold text-gray-700 mb-2">AI Instructor Feedback:</h3>
+                                        <p className="text-gray-600 leading-relaxed">{assessmentResult.feedback || "Good effort! Review the modules and try again to improve your score."}</p>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        {assessmentResult.passed ? (
+                                            <button
+                                                onClick={() => setView('certificate')}
+                                                className="bg-green-600 text-white px-8 py-3 rounded-full font-bold hover:bg-green-700 transition-all shadow-lg flex items-center"
+                                            >
+                                                <Award size={20} className="mr-2" />
+                                                View Certificate
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={startAssessment}
+                                                className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg flex items-center"
+                                            >
+                                                <Target size={20} className="mr-2" />
+                                                Retry Assessment
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => setView('course')}
+                                            className="px-8 py-3 rounded-full font-bold text-gray-600 hover:bg-gray-100 transition-all"
+                                        >
+                                            Back to Course
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
+                                        <div>
+                                            <h2 className="text-3xl font-bold text-gray-800">Final Assessment</h2>
+                                            <p className="text-gray-500 mt-1">Answer all questions to complete the course certification.</p>
+                                        </div>
+                                        <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-bold">
+                                            Pass Mark: 85%
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-8">
+                                        {assessmentQuestions.map((q, idx) => (
+                                            <div key={q.id || idx} className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                                                <p className="font-semibold text-lg text-gray-800 mb-4 flex">
+                                                    <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 flex-shrink-0">
+                                                        {idx + 1}
+                                                    </span>
+                                                    {q.question}
+                                                </p>
+                                                <div className="space-y-3 ml-11">
+                                                    {q.options.map((option: string, optIdx: number) => (
+                                                        <label
+                                                            key={optIdx}
+                                                            className={`flex items-center p-4 rounded-lg border cursor-pointer transition-all ${assessmentAnswers[q.id || idx] === option
+                                                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                                                                : 'border-gray-200 hover:bg-white hover:border-blue-300'
+                                                                }`}
+                                                        >
+                                                            <input
+                                                                type="radio"
+                                                                name={`q-${q.id || idx}`}
+                                                                className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                                                checked={assessmentAnswers[q.id || idx] === option}
+                                                                onChange={() => setAssessmentAnswers(prev => ({ ...prev, [q.id || idx]: option }))}
+                                                            />
+                                                            <span className="ml-3 text-gray-700">{option}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-10 flex justify-end gap-4 pb-10">
+                                        <button
+                                            onClick={() => setView('course')}
+                                            className="px-6 py-3 rounded-lg font-medium text-gray-500 hover:text-gray-700"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={submitAssessment}
+                                            disabled={Object.keys(assessmentAnswers).length < assessmentQuestions.length}
+                                            className={`px-8 py-3 rounded-full font-bold text-white shadow-lg transition-all flex items-center ${Object.keys(assessmentAnswers).length < assessmentQuestions.length
+                                                ? 'bg-gray-300 cursor-not-allowed'
+                                                : 'bg-blue-600 hover:bg-blue-700 transform hover:scale-105'
+                                                }`}
+                                        >
+                                            Submit Assessment <ArrowRight size={20} className="ml-2" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {view === 'certificate' && (
                         <div className="flex flex-col items-center justify-start p-4 pt-8 min-h-[600px] w-full">
                             {completedCourses.length > 0 ? (
@@ -788,7 +1000,12 @@ const Dashboard = () => {
                                                 <button
                                                     key={c.id}
                                                     onClick={() => setViewCertificateId(c.id)}
-                                                    className={`px-4 py-2 rounded-md font-medium transition-colors ${(viewCertificateId || completedCourses[0].id) === c.id
+                                                    className={`px-4 py-2 rounded-md font-medium transition-colors ${(() => {
+                                                        const isCompleted = (cid: string) => completedCourses.some(cc => cc.id === cid);
+                                                        const initialCertId = isCompleted(activeCourseId) ? activeCourseId : completedCourses[0]?.id;
+                                                        const displayCertId = viewCertificateId || initialCertId;
+                                                        return displayCertId === c.id;
+                                                    })()
                                                         ? 'bg-blue-600 text-white'
                                                         : 'text-gray-600 hover:bg-gray-100'
                                                         }`}
@@ -801,12 +1018,22 @@ const Dashboard = () => {
                                     <Suspense fallback={<div className="flex justify-center items-center h-[600px]"><div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div></div>}>
                                         <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
                                             <div className="min-w-[800px] flex justify-center">
-                                                <Certificate
-                                                    userName={user.fullName || user.email.split('@')[0]}
-                                                    courseName={completedCourses.find(c => c.id === (viewCertificateId || completedCourses[0].id))?.name || 'Course Completion'}
-                                                    language={settingsLanguage}
-                                                    userEmail={user.email}
-                                                />
+                                                {(() => {
+                                                    const isCompleted = (cid: string) => completedCourses.some(cc => cc.id === cid);
+                                                    const initialCertId = isCompleted(activeCourseId) ? activeCourseId : completedCourses[0]?.id;
+                                                    const displayCertId = viewCertificateId || initialCertId || activeCourseId;
+
+                                                    return (
+                                                        <Certificate
+                                                            key={displayCertId}
+                                                            userName={user.fullName || user.email.split('@')[0]}
+                                                            courseName={courseNames[displayCertId] || 'Course Completion'}
+                                                            courseId={displayCertId}
+                                                            language={settingsLanguage}
+                                                            userEmail={user.email}
+                                                        />
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </Suspense>

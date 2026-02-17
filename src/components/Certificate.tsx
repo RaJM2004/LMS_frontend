@@ -2,11 +2,13 @@ import React, { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { Share2, Download, Award } from 'lucide-react';
 import { translations } from '../translations';
+import { API_BASE_URL } from '../config';
 import QRCode from 'qrcode';
 
 interface CertificateProps {
     userName: string;
     courseName: string;
+    courseId?: string;
     language?: string;
     certificateId?: string;
     date?: string;
@@ -16,6 +18,7 @@ interface CertificateProps {
 const Certificate: React.FC<CertificateProps> = ({
     userName,
     courseName,
+    courseId,
     language = 'ENGLISH',
     certificateId,
     date = new Date().toLocaleDateString(),
@@ -27,7 +30,7 @@ const Certificate: React.FC<CertificateProps> = ({
 
     // --- ID STABILITY LOGIC ---
     // Create a key bound to user and course to persist ID
-    const storageKey = userEmail ? `cert_id_${userEmail.replace(/[^a-zA-Z0-9]/g, '')}_${courseName.replace(/[^a-zA-Z0-9]/g, '')}` : null;
+    const storageKey = userEmail ? `cert_id_${userEmail.replace(/[^a-zA-Z0-9]/g, '')}_${(courseId || courseName).replace(/[^a-zA-Z0-9]/g, '')}` : null;
 
     // 1. Initialize stableId from localStorage (if exists) or generate new fallback
     const [stableId] = useState(() => {
@@ -67,15 +70,15 @@ const Certificate: React.FC<CertificateProps> = ({
 
             setIsSyncing(true);
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'https://lms-backend-vzds.onrender.com';
                 console.log(`Fetching certificate for ${userEmail}...`);
 
-                const response = await fetch(`${API_URL}/api/certificate/issue`, {
+                const response = await fetch(`${API_BASE_URL}/api/certificate/issue`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         email: userEmail,
-                        courseName: courseName
+                        courseName: courseName,
+                        courseId: courseId
                     })
                 });
 
@@ -98,7 +101,91 @@ const Certificate: React.FC<CertificateProps> = ({
         };
 
         createOrFetchCertificate();
-    }, [userEmail, courseName, certificateId, storageKey, stableId]);
+    }, [userEmail, courseName, courseId, certificateId, storageKey, stableId]);
+
+    // --- AUTO EMAIL LOGIC ---
+    useEffect(() => {
+        const sendCertificateEmail = async () => {
+            // Only proceed if we have a verified backend ID and user email. 
+            // Also check userName/courseName to ensure data is populated.
+            if (!backendCertId || !userEmail || !userName || !courseName) return;
+
+            // Check localStorage to prevent spamming on refresh
+            const emailKey = `email_sent_${backendCertId}`;
+            if (localStorage.getItem(emailKey)) return;
+
+            // Wait for fonts/layout to settle
+            await document.fonts.ready;
+            // Add a small delay to ensure rendering is complete
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            if (certificateRef.current) {
+                try {
+                    console.log("Generating certificate image for email...");
+
+                    // Capture logic - must match download logic for high quality
+                    // We temporarily reset styles to 1:1 scale for the capture
+                    const originalTransform = certificateRef.current.style.transform;
+                    const originalMargin = certificateRef.current.style.margin;
+                    const originalLeft = certificateRef.current.style.left;
+
+                    // Force reset for capture
+                    certificateRef.current.style.transform = 'scale(1)';
+                    certificateRef.current.style.margin = '0 auto';
+                    certificateRef.current.style.left = '0';
+
+                    const canvas = await html2canvas(certificateRef.current, {
+                        scale: 1.5, // Lower scale than download (2 or 3) to keep payload manageable
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        width: 1123,
+                        height: 794,
+                        windowWidth: 1123,
+                        windowHeight: 794
+                    });
+
+                    // Convert to base64
+                    const imageData = canvas.toDataURL('image/jpeg', 0.8); // JPEG is smaller than PNG
+
+                    // Restore styles
+                    certificateRef.current.style.transform = originalTransform;
+                    certificateRef.current.style.margin = originalMargin;
+                    certificateRef.current.style.left = originalLeft;
+
+                    console.log("Sending email...");
+                    // Send to Backend
+                    const response = await fetch(`${API_BASE_URL}/api/certificate/email`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: userEmail,
+                            studentName: userName,
+                            courseName: courseName,
+                            courseId: courseId,
+                            certificateId: backendCertId,
+                            imageData: imageData
+                        })
+                    });
+
+                    const resData = await response.json();
+                    if (response.ok && resData.success) {
+                        console.log("Certificate email sent successfully.");
+                        localStorage.setItem(emailKey, 'true');
+                        // Optional: alert or toast
+                        // alert("A copy of your certificate has been emailed to you!");
+                    } else {
+                        console.error("Failed to send email:", resData);
+                    }
+
+                } catch (error) {
+                    console.error("Error auto-emailing certificate:", error);
+                }
+            }
+        };
+
+        sendCertificateEmail();
+    }, [backendCertId, userEmail, userName, courseName]);
 
     useEffect(() => {
         // Generate QR code as data URL for reliable rendering in html2canvas

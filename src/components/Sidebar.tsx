@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, CheckCircle, Circle, Lock, MessageCircle, Medal as Award } from 'lucide-react';
+import { Settings, CheckCircle, Circle, Lock, Award } from 'lucide-react';
 import { translations } from '../translations';
 
 interface Lesson {
@@ -22,6 +22,8 @@ interface SidebarProps {
     courses?: { id: string; name: string }[];
     activeCourseId?: string;
     onCourseSelect?: (id: string) => void;
+    assessmentPassed?: boolean;
+    currentScore?: number;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -36,7 +38,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     onCertificateClick,
     courses = [],
     activeCourseId,
-    onCourseSelect
+    onCourseSelect,
+    assessmentPassed,
+    currentScore
 }) => {
     const t = translations[language as keyof typeof translations] || translations.ENGLISH;
 
@@ -76,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">
-                        <span>{Math.min(100, progress)}% {t.completed}</span>
+                        <span>{Math.min(100, Math.round(progress))}% {t.completed}</span>
                     </div>
                     <div className="w-full bg-blue-800 h-2 rounded-full">
                         <div className="bg-green-400 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, progress)}%` }}></div>
@@ -122,10 +126,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {Math.round(progress) >= 100 && (
                     <button
                         onClick={onCertificateClick}
-                        className="flex items-center space-x-2 text-green-600 hover:text-green-800 w-full p-2 rounded hover:bg-green-50 transition-colors mb-2"
+                        className={`flex items-center justify-center space-x-2 w-full p-2.5 rounded transition-all mb-3 font-semibold shadow-sm ${assessmentPassed
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200 hover:shadow-md'
+                            : 'bg-amber-100 text-amber-700 hover:bg-amber-200 hover:shadow-md animate-pulse'
+                            }`}
                     >
                         <Award size={20} />
-                        <span className="font-medium">{t.certificate}</span>
+                        <span>
+                            {assessmentPassed
+                                ? t.certificate
+                                : (currentScore !== undefined ? `Retake Assessment (${currentScore}%)` : 'Take Final Assessment')
+                            }
+                        </span>
                     </button>
                 )}
 
