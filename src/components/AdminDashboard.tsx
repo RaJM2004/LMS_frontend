@@ -54,6 +54,7 @@ interface ModuleUpdate {
     updates: {
         sections: Section[];
         code?: string;
+        output?: string;
         mcqs?: any[];
     };
 }
