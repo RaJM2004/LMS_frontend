@@ -303,6 +303,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         }
     };
 
+    const handleDeleteUser = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/admin/users/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchUsers();
+            } else {
+                const errorData = await res.json();
+                alert(`Failed to delete user: ${errorData.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            alert("Error deleting user");
+        }
+    };
+
     const resetForm = () => {
         setModuleForm({
             id: '',
@@ -595,7 +611,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                                                             >
                                                                 <Edit size={18} />
                                                             </button>
-                                                            {/* Add delete button here if needed in future */}
+                                                            <button
+                                                                onClick={() => handleDeleteUser(user._id)}
+                                                                className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                                                                title="Delete User"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
                                                         </div>
                                                     </td>
                                                 </tr>
