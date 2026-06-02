@@ -1,0 +1,1389 @@
+import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
+import { Users, BookOpen, Plus, Edit, Trash2, Save, X, BarChart2, Search, LayoutDashboard, FileText, Video, LogOut, Clock, CheckCircle, XCircle } from 'lucide-react';
+
+interface User {
+    _id: string;
+    email: string;
+    fullName: string;
+    role: string;
+    progress: number;
+    completedModules: string[];
+    enrolledCourses?: string[];
+    quizScores?: {
+        moduleId: string;
+        score: number;
+        totalQuestions: number;
+        percentage: number;
+    }[];
+    referredBy?: string;
+    finalAssessment?: {
+        score: number;
+        passed: boolean;
+        attempts: number;
+    };
+}
+
+interface Section {
+    title: string;
+    content: string;
+    videoUrl?: string;
+    pdfUrl?: string;
+    image?: string;
+}
+
+interface Module {
+    id: string;
+    title: string;
+    courseId?: string;
+    sections: Section[];
+    order: number;
+    code?: string;
+    output?: string;
+    sessions?: {
+        title: string;
+        date: string;
+        time: string;
+        link: string;
+        duration: string;
+        isLive?: boolean;
+    }[];
+}
+
+interface ModuleUpdate {
+    _id: string;
+    moduleId: string;
+    title: string;
+    courseId?: string;
+    instructorEmail: string;
+    status: 'pending' | 'approved' | 'rejected';
+    submittedAt: string;
+    adminComment?: string;
+    updates: {
+        sections: Section[];
+        code?: string;
+        output?: string;
+        mcqs?: any[];
+        sessions?: {
+            title: string;
+            date: string;
+            time: string;
+            link: string;
+            duration: string;
+            isLive?: boolean;
+        }[];
+    };
+}
+
+interface AdminDashboardProps {
+    onLogout?: () => void;
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'modules' | 'updates'>('dashboard');
+    const [users, setUsers] = useState<User[]>([]);
+    const [modules, setModules] = useState<Module[]>([]);
+    const [pendingUpdates, setPendingUpdates] = useState<ModuleUpdate[]>([]);
+    const [showModuleModal, setShowModuleModal] = useState(false);
+    const [selectedCourseFilter, setSelectedCourseFilter] = useState('all');
+    const [editingModule, setEditingModule] = useState<Module | null>(null);
+    const [selectedUpdate, setSelectedUpdate] = useState<ModuleUpdate | null>(null);
+    const [reviewTab, setReviewTab] = useState<'sections' | 'code' | 'mcqs' | 'sessions'>('sections');
+
+    // User Editing State
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [showUserModal, setShowUserModal] = useState(false);
+    const [userForm, setUserForm] = useState({
+        email: '',
+        fullName: '',
+        role: 'user',
+        enrolledCourses: [] as string[]
+    });
+
+    // Form State
+    const [moduleForm, setModuleForm] = useState<Module>({
+        id: '',
+        title: '',
+        courseId: 'python-ai-course',
+        order: 0,
+        sections: [],
+        code: '',
+        output: '',
+        sessions: []
+    });
+
+    // Section Editing State
+    const [activeSectionIndex, setActiveSectionIndex] = useState<number | null>(null);
+    const [activeSessionIndex, setActiveSessionIndex] = useState<number | null>(null);
+
+    // Course Mapping
+    const courseNames: Record<string, string> = {
+        'python-ai-course': 'Python Programming for AI',
+        'ml-dl-course': 'Machine Learning & Deep Learning',
+        'neural-networks-course': 'Neural Networks & Deep Learning',
+        'nlp-course': 'Natural Language Processing',
+        'cv-course': 'Computer Vision',
+        'agentic-ai-course': 'Agentic AI',
+        'gen-ai-course': 'Generative AI',
+        'ai-risk-course': 'AI Risk Curriculum',
+        'csv-course': 'Computerized System Validation',
+        'med-writing-course': 'Medical Writing',
+        'ai-healthcare-course': 'AI in Healthcare',
+        'lifesciences-ai-course': 'Transforming Lifesciences with AI',
+        'ai-cybersecurity-course': 'AI in Cybersecurity',
+        'ai-medical-coding-course': 'AI in Medical Coding',
+        'pharma-gen-ai-course': 'Generative AI in Pharma',
+        'data-engg': 'Data Engineering',
+        'data-scientist': 'Data Scientist',
+        'robotics-ai': 'Advanced Robotics & AI Integration',
+        'drug-discovery-sprint': 'Next-Gen Drug Discovery: 5-Day Sprint',
+        'drug-discovery-deep-dive': 'Next-Gen Drug Discovery: 45-Day Deep-Dive',
+        'drug-discovery-masterclass': 'Next-Gen Drug Discovery: 6-Month Masterclass'
+    };
+
+    // Helper to get course color
+    const getCourseColor = (courseId: string) => {
+        const colors = [
+            'bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-red-500', 'bg-yellow-500',
+            'bg-indigo-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500', 'bg-cyan-500'
+        ];
+        let hash = 0;
+        for (let i = 0; i < courseId.length; i++) {
+            hash = courseId.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    };
+
+    useEffect(() => {
+        fetchUsers();
+        fetchModules();
+        fetchPendingUpdates();
+    }, []);
+
+    const fetchPendingUpdates = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/instructor/pending-updates`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setPendingUpdates(data);
+            } else {
+                setPendingUpdates([]);
+            }
+        } catch (error) {
+            console.error("Error fetching updates:", error);
+        }
+    };
+
+    const handleApproveUpdate = async (id: string) => {
+        if (!confirm("Are you sure you want to approve this update?")) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/instructor/approve-update/${id}`, { method: 'POST' });
+            if (res.ok) {
+                alert("Update approved!");
+                fetchPendingUpdates();
+                fetchModules(); // Refresh modules
+            } else {
+                alert("Failed to approve update");
+            }
+        } catch (error) {
+            console.error("Error approving:", error);
+        }
+    };
+
+    const handleRejectUpdate = async (id: string) => {
+        const reason = prompt("Enter rejection reason:");
+        if (reason === null) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/instructor/reject-update/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+            if (res.ok) {
+                alert("Update rejected.");
+                fetchPendingUpdates();
+            }
+        } catch (error) {
+            console.error("Error rejecting:", error);
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/admin/users`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setUsers(data);
+            } else {
+                console.error("Expected array of users, got:", data);
+                setUsers([]);
+            }
+        } catch (error) {
+            console.error("Error fetching users:", error);
+            setUsers([]);
+        }
+    };
+
+    const fetchModules = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/courses?all=true`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setModules(data);
+            } else {
+                console.error("Expected array of modules, got:", data);
+                setModules([]);
+            }
+        } catch (error) {
+            console.error("Error fetching modules:", error);
+            setModules([]);
+        }
+    };
+
+    const handleAddUser = () => {
+        setEditingUser(null);
+        setUserForm({
+            email: '',
+            fullName: '',
+            role: 'user',
+            enrolledCourses: []
+        });
+        setShowUserModal(true);
+    };
+
+    const handleEditUser = (user: User) => {
+        setEditingUser(user);
+        setUserForm({
+            email: user.email || '',
+            fullName: user.fullName || '',
+            role: user.role || 'user',
+            enrolledCourses: user.enrolledCourses || []
+        });
+        setShowUserModal(true);
+    };
+
+    const handleSaveUser = async () => {
+        try {
+            const url = editingUser
+                ? `${API_BASE_URL}/api/admin/users/${editingUser._id}`
+                : `${API_BASE_URL}/api/admin/users`;
+
+            const method = editingUser ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userForm)
+            });
+
+            if (res.ok) {
+                setShowUserModal(false);
+                setEditingUser(null);
+                // Refresh Users
+                fetchUsers();
+            } else {
+                const errorData = await res.json();
+                alert(`Error saving user: ${errorData.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error("Error updating user:", error);
+            alert("Failed to save user");
+        }
+    };
+
+
+    const handleSaveModule = async () => {
+        try {
+            const url = editingModule
+                ? `${API_BASE_URL}/api/admin/modules/${editingModule.id}`
+                : `${API_BASE_URL}/api/admin/modules`;
+
+            const method = editingModule ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(moduleForm)
+            });
+
+            if (res.ok) {
+                setShowModuleModal(false);
+                fetchModules();
+                setEditingModule(null);
+                resetForm();
+            }
+        } catch (error) {
+            console.error("Error saving module:", error);
+        }
+    };
+
+    const handleDeleteModule = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this module?')) return;
+        try {
+            await fetch(`${API_BASE_URL}/api/admin/modules/${id}`, { method: 'DELETE' });
+            fetchModules();
+        } catch (error) {
+            console.error("Error deleting module:", error);
+        }
+    };
+
+    const handleDeleteUser = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/admin/users/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchUsers();
+            } else {
+                const errorData = await res.json();
+                alert(`Failed to delete user: ${errorData.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            alert("Error deleting user");
+        }
+    };
+
+    const resetForm = () => {
+        setModuleForm({
+            id: '',
+            title: '',
+            courseId: 'python-ai-course',
+            order: 0,
+            sections: [],
+            code: '',
+            output: '',
+            sessions: []
+        });
+        setActiveSectionIndex(null);
+        setActiveSessionIndex(null);
+    };
+
+    const handleAddSection = () => {
+        setModuleForm({
+            ...moduleForm,
+            sections: [...moduleForm.sections, { title: 'New Section', content: '' }]
+        });
+        setActiveSectionIndex(moduleForm.sections.length);
+    };
+
+    const handleUpdateSection = (index: number, field: keyof Section, value: string) => {
+        const updatedSections = [...moduleForm.sections];
+        updatedSections[index] = { ...updatedSections[index], [field]: value };
+        setModuleForm({ ...moduleForm, sections: updatedSections });
+    };
+
+    const handleDeleteSection = (index: number) => {
+        const updatedSections = moduleForm.sections.filter((_, i) => i !== index);
+        setModuleForm({ ...moduleForm, sections: updatedSections });
+        setActiveSectionIndex(null);
+    };
+
+    // Session Helpers
+    const handleAddSession = () => {
+        const newSession = {
+            title: 'New Session',
+            date: '',
+            time: '',
+            link: '',
+            duration: '',
+            isLive: false
+        };
+        setModuleForm({ ...moduleForm, sessions: [...(moduleForm.sessions || []), newSession] });
+        setActiveSessionIndex((moduleForm.sessions?.length || 0));
+        setActiveSectionIndex(null); // Deselect sections when adding session
+    };
+
+    const handleUpdateSession = (index: number, field: string, value: any) => {
+        const updatedSessions = [...(moduleForm.sessions || [])];
+        updatedSessions[index] = { ...updatedSessions[index], [field]: value };
+        setModuleForm({ ...moduleForm, sessions: updatedSessions });
+    };
+
+    const handleDeleteSession = (index: number) => {
+        const updatedSessions = (moduleForm.sessions || []).filter((_, i) => i !== index);
+        setModuleForm({ ...moduleForm, sessions: updatedSessions });
+        setActiveSessionIndex(null);
+    };
+
+    // Stats
+    const totalUsers = users.length;
+    const totalModules = modules.length;
+    const activeUsers = users.filter(u => u.progress > 0).length;
+    const completionRate = users.length > 0
+        ? Math.round((users.reduce((acc, curr) => acc + curr.progress, 0) / (users.length * 100)) * 100)
+        : 0;
+
+    return (
+        <div className="min-h-screen bg-gray-50 flex font-sans">
+            {/* Sidebar */}
+            <div className="w-64 bg-gray-900 text-white flex flex-col fixed h-full">
+                <div className="p-6 border-b border-gray-800">
+                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                        Admin Panel
+                    </h1>
+                </div>
+                <nav className="flex-1 p-4 space-y-2">
+                    <button
+                        onClick={() => setActiveTab('dashboard')}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            }`}
+                    >
+                        <LayoutDashboard size={20} />
+                        <span>Dashboard</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('users')}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            }`}
+                    >
+                        <Users size={20} />
+                        <span>User Management</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('modules')}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'modules' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            }`}
+                    >
+                        <BookOpen size={20} />
+                        <span>Course Content</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('updates')}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'updates' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            }`}
+                    >
+                        <Clock size={20} />
+                        <span>Review Updates</span>
+                    </button>
+                </nav>
+                <div className="p-4 border-t border-gray-800">
+                    <div className="flex items-center space-x-3 mb-4">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center font-bold">
+                            A
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium">Administrator</p>
+                            <p className="text-xs text-gray-500">admin@quantxai.com</p>
+                        </div>
+                    </div>
+                    {onLogout && (
+                        <button
+                            onClick={onLogout}
+                            className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-red-400 hover:bg-gray-800 hover:text-red-300 transition-all border border-gray-800 hover:border-red-900"
+                        >
+                            <LogOut size={18} />
+                            <span className="text-sm font-medium">Logout</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 ml-64 overflow-y-auto min-h-screen">
+                <header className="bg-white shadow-sm border-b border-gray-200 p-6 flex justify-between items-center sticky top-0 z-10">
+                    <h2 className="text-2xl font-bold text-gray-800 capitalize">
+                        {activeTab}
+                    </h2>
+                    <div className="flex items-center space-x-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+                            />
+                        </div>
+                    </div>
+                </header>
+
+                <main className="p-8">
+                    {activeTab === 'dashboard' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fadeIn">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p className="text-sm text-gray-500 font-medium">Total Users</p>
+                                        <h3 className="text-3xl font-bold text-gray-800">{totalUsers}</h3>
+                                    </div>
+                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                                        <Users size={24} />
+                                    </div>
+                                </div>
+                                <div className="text-sm text-green-600 font-medium flex items-center">
+                                    <span>+12% from last month</span>
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p className="text-sm text-gray-500 font-medium">Active Learners</p>
+                                        <h3 className="text-3xl font-bold text-gray-800">{activeUsers}</h3>
+                                    </div>
+                                    <div className="p-3 bg-green-50 text-green-600 rounded-lg">
+                                        <BarChart2 size={24} />
+                                    </div>
+                                </div>
+                                <div className="text-sm text-green-600 font-medium flex items-center">
+                                    <span>{Math.round((activeUsers / totalUsers) * 100 || 0)}% engagement rate</span>
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p className="text-sm text-gray-500 font-medium">Total Modules</p>
+                                        <h3 className="text-3xl font-bold text-gray-800">{totalModules}</h3>
+                                    </div>
+                                    <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
+                                        <BookOpen size={24} />
+                                    </div>
+                                </div>
+                                <div className="text-sm text-gray-500 font-medium flex items-center">
+                                    <span>Across {Object.keys(courseNames).length} courses</span>
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p className="text-sm text-gray-500 font-medium">Avg. Completion</p>
+                                        <h3 className="text-3xl font-bold text-gray-800">{completionRate}%</h3>
+                                    </div>
+                                    <div className="p-3 bg-orange-50 text-orange-600 rounded-lg">
+                                        <LayoutDashboard size={24} />
+                                    </div>
+                                </div>
+                                <div className="text-sm text-gray-500 font-medium flex items-center">
+                                    <span>Global average</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'users' && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fadeIn">
+                            <div className="p-4 border-b border-gray-100 flex justify-end">
+                                <button
+                                    onClick={handleAddUser}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center text-sm font-bold"
+                                >
+                                    <Plus size={18} className="mr-2" />
+                                    Add New User
+                                </button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left whitespace-nowrap">
+                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">User</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Role</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Progress</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600 text-center">Quiz Avg</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600 text-center">Assessment</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Enrolled Courses</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Referred By</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Modules Completed</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600 sticky right-0 bg-gray-50 shadow-sm z-10">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {users.map(user => {
+                                            const avgQuizScore = user.quizScores && user.quizScores.length > 0
+                                                ? Math.round(user.quizScores.reduce((acc, curr) => acc + curr.percentage, 0) / user.quizScores.length)
+                                                : null;
+
+                                            return (
+                                                <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center">
+                                                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold mr-3 flex-shrink-0">
+                                                                {user.fullName ? user.fullName[0].toUpperCase() : user.email[0].toUpperCase()}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-gray-900">{user.fullName || 'N/A'}</p>
+                                                                <p className="text-sm text-gray-500">{user.email}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                            {user.role || 'user'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="w-full bg-gray-200 rounded-full h-2.5 min-w-[100px] max-w-[140px]">
+                                                            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${user.progress}%` }}></div>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500 mt-1 block">{user.progress}%</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {avgQuizScore !== null ? (
+                                                            <span className={`font-bold ${avgQuizScore >= 80 ? 'text-green-600' : avgQuizScore >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                                {avgQuizScore}%
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-sm">No Quizzes</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {user.finalAssessment ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className={`font-bold ${user.finalAssessment.passed ? 'text-green-600' : 'text-red-600'}`}>
+                                                                    {user.finalAssessment.score}%
+                                                                </span>
+                                                                <span className="text-xs text-gray-500">
+                                                                    {user.finalAssessment.passed ? 'Passed' : 'Failed'} ({user.finalAssessment.attempts} attempts)
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-sm">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                                            {(user.enrolledCourses || []).map(cid => (
+                                                                <span key={cid} className="px-2 py-1 text-xs rounded bg-indigo-50 text-indigo-700 border border-indigo-100 whitespace-nowrap">
+                                                                    {courseNames[cid] || cid}
+                                                                </span>
+                                                            ))}
+                                                            {(!user.enrolledCourses || user.enrolledCourses.length === 0) && (
+                                                                <span className="text-xs text-gray-400 italic">None</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-600">
+                                                        {user.referredBy || '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-600 text-center">
+                                                        {user.completedModules.length}
+                                                    </td>
+                                                    <td className="px-6 py-4 sticky right-0 bg-white shadow-sm z-10 border-l border-gray-100">
+                                                        <div className="flex space-x-2 justify-center">
+                                                            <button
+                                                                onClick={() => handleEditUser(user)}
+                                                                className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                                                                title="Edit User"
+                                                            >
+                                                                <Edit size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteUser(user._id)}
+                                                                className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                                                                title="Delete User"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'modules' && (
+                        <div className="animate-fadeIn">
+                            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                                <div className="flex items-center space-x-4">
+                                    <h3 className="text-gray-700 font-bold">Filter by Course:</h3>
+                                    <select
+                                        value={selectedCourseFilter}
+                                        onChange={(e) => setSelectedCourseFilter(e.target.value)}
+                                        className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none max-w-xs"
+                                    >
+                                        <option value="all">All Courses</option>
+                                        {Object.entries(courseNames).map(([id, name]) => (
+                                            <option key={id} value={id}>{name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setEditingModule(null);
+                                        resetForm();
+                                        setModuleForm(prev => ({ ...prev, order: modules.length + 1 }));
+                                        setShowModuleModal(true);
+                                    }}
+                                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center"
+                                >
+                                    <Plus size={20} className="mr-2" />
+                                    Add New Module
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {modules
+                                    .filter(m => selectedCourseFilter === 'all' || (m.courseId || 'python-ai-course') === selectedCourseFilter)
+                                    .map(module => (
+                                        <div key={module.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group flex flex-col h-full relative overflow-hidden">
+                                            <div className={`absolute top-0 right-0 p-2 rounded-bl-lg text-xs font-bold text-white ${getCourseColor(module.courseId || 'python-ai-course')}`}>
+                                                {courseNames[module.courseId || 'python-ai-course'] || module.courseId}
+                                            </div>
+                                            <div className="flex justify-between items-start mb-4 mt-2">
+                                                <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xl shrink-0">
+                                                    {module.order}
+                                                </div>
+                                                <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingModule(module);
+                                                            setModuleForm({
+                                                                id: module.id,
+                                                                title: module.title,
+                                                                courseId: module.courseId || 'python-ai-course',
+                                                                order: module.order,
+                                                                sections: module.sections || [],
+                                                                code: module.code || '',
+                                                                output: module.output || '',
+                                                                sessions: module.sessions || []
+                                                            });
+                                                            setShowModuleModal(true);
+                                                        }}
+                                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteModule(module.id)}
+                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-2">{module.title}</h3>
+                                            <p className="text-sm text-gray-500 mb-4 flex-1">{module.sections?.length || 0} Sections</p>
+                                            <div className="w-full bg-gray-100 h-1 rounded-full overflow-hidden mt-auto">
+                                                <div className="bg-blue-500 h-full w-full"></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'updates' && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fadeIn">
+                            <div className="p-6 border-b border-gray-100">
+                                <h3 className="text-xl font-bold text-gray-800">Pending Instructor Updates</h3>
+                                <p className="text-sm text-gray-500">Review content changes submitted by instructors.</p>
+                            </div>
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Module</th>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Instructor</th>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Submitted At</th>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {pendingUpdates.map(update => (
+                                        <tr key={update._id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="font-bold text-gray-800">{update.title}</p>
+                                                    <p className="text-xs text-gray-500">{courseNames[update.courseId || 'python-ai-course'] || update.courseId}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{update.instructorEmail}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{new Date(update.submittedAt).toLocaleString()}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => setSelectedUpdate(update)}
+                                                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-200 transition-colors flex items-center"
+                                                    >
+                                                        <BookOpen size={14} className="mr-1" /> Review
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {pendingUpdates.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-400">No pending updates.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </main>
+            </div>
+
+            {/* Review Update Modal */}
+            {selectedUpdate && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-2xl w-[95%] max-w-7xl max-h-[90vh] overflow-hidden flex flex-col animate-fadeIn">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800">Review Update: {selectedUpdate.title}</h3>
+                                <p className="text-sm text-gray-500">Submitted by {selectedUpdate.instructorEmail}</p>
+                            </div>
+                            <button onClick={() => setSelectedUpdate(null)} className="text-gray-400 hover:text-gray-600">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+
+                            {/* Review Tabs */}
+                            <div className="flex border-b border-gray-200 bg-white sticky top-0 z-10">
+                                <button
+                                    onClick={() => setReviewTab('sections')}
+                                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${reviewTab === 'sections' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Sections
+                                </button>
+                                <button
+                                    onClick={() => setReviewTab('code')}
+                                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${reviewTab === 'code' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Code & Output
+                                </button>
+                                <button
+                                    onClick={() => setReviewTab('mcqs')}
+                                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${reviewTab === 'mcqs' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    MCQs
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6 h-full p-4 overflow-y-auto">
+                                {/* Original Content */}
+                                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 overflow-y-auto max-h-[60vh]">
+                                    <h4 className="font-bold text-gray-700 mb-4 border-b pb-2 flex items-center sticky top-0 bg-white z-10">
+                                        <div className="w-2 h-2 rounded-full bg-gray-400 mr-2"></div>
+                                        Current Live Content
+                                    </h4>
+
+                                    {reviewTab === 'sections' && (
+                                        modules.find(m => m.id === selectedUpdate.moduleId)?.sections.map((section, idx) => (
+                                            <div key={idx} className="mb-6 border-b border-gray-100 pb-4 last:border-0">
+                                                <h5 className="font-bold text-sm text-gray-600 mb-2">{section.title}</h5>
+                                                <div className="text-xs text-gray-500 font-mono bg-gray-50 p-3 rounded mb-2 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                                    {section.content}
+                                                </div>
+                                                {(section.videoUrl || section.pdfUrl) && (
+                                                    <div className="flex items-center space-x-4 text-xs text-gray-400">
+                                                        {section.videoUrl && <span className="flex items-center"><Video size={10} className="mr-1" /> Video Attached</span>}
+                                                        {section.pdfUrl && <span className="flex items-center"><FileText size={10} className="mr-1" /> PDF Attached</span>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )) || <div className="text-gray-400 italic text-sm">No sections found.</div>
+                                    )}
+
+                                    {reviewTab === 'code' && (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h5 className="font-bold text-sm text-gray-600 mb-1">Code</h5>
+                                                <pre className="text-xs text-gray-300 font-mono bg-gray-900 p-3 rounded mb-2 overflow-x-auto">
+                                                    {modules.find(m => m.id === selectedUpdate.moduleId)?.code || '// No code'}
+                                                </pre>
+                                            </div>
+                                            <div>
+                                                <h5 className="font-bold text-sm text-gray-600 mb-1">Expected Output</h5>
+                                                <pre className="text-xs text-gray-300 font-mono bg-black p-3 rounded overflow-x-auto">
+                                                    {modules.find(m => m.id === selectedUpdate.moduleId)?.output || '// No output'}
+                                                </pre>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {reviewTab === 'mcqs' && (
+                                        <div className="space-y-4">
+                                            {(modules.find(m => m.id === selectedUpdate.moduleId) as any)?.mcqs?.map((mcq: any, idx: number) => (
+                                                <div key={idx} className="border border-gray-200 p-3 rounded-lg">
+                                                    <p className="font-bold text-gray-700 text-sm mb-2">{idx + 1}. {mcq.question}</p>
+                                                    <ul className="list-disc pl-5 text-xs text-gray-600 space-y-1">
+                                                        {mcq.options.map((opt: string, i: number) => (
+                                                            <li key={i} className={i === mcq.correctAnswer ? "text-green-600 font-bold" : ""}>
+                                                                {opt}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )) || <div className="text-gray-400 italic text-sm">No MCQs found.</div>}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* New Content */}
+                                <div className="bg-blue-50 p-6 rounded-lg shadow-sm border border-blue-100 overflow-y-auto max-h-[60vh]">
+                                    <h4 className="font-bold text-blue-700 mb-4 border-b border-blue-200 pb-2 flex items-center sticky top-0 bg-blue-50 z-10">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                                        Proposed Update
+                                    </h4>
+
+                                    {reviewTab === 'sections' && (
+                                        selectedUpdate.updates.sections?.map((section, idx) => (
+                                            <div key={idx} className="mb-6 border-b border-blue-100 pb-4 last:border-0">
+                                                <h5 className="font-bold text-sm text-blue-800 mb-2">{section.title}</h5>
+                                                <div className="text-xs text-blue-900 font-mono bg-white p-3 rounded mb-2 whitespace-pre-wrap max-h-40 overflow-y-auto border border-blue-100">
+                                                    {section.content}
+                                                </div>
+                                                {(section.videoUrl || section.pdfUrl) && (
+                                                    <div className="flex items-center space-x-4 text-xs text-blue-500 p-2 bg-blue-100 rounded">
+                                                        {section.videoUrl && (
+                                                            <span className="flex items-center truncate max-w-[200px]" title={section.videoUrl}>
+                                                                <Video size={12} className="mr-1" /> {section.videoUrl}
+                                                            </span>
+                                                        )}
+                                                        {section.pdfUrl && (
+                                                            <span className="flex items-center truncate max-w-[200px]" title={section.pdfUrl}>
+                                                                <FileText size={12} className="mr-1" /> {section.pdfUrl}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )) || <div className="text-blue-400 italic text-sm">No sections in update.</div>
+                                    )}
+
+                                    {reviewTab === 'code' && (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h5 className="font-bold text-sm text-blue-800 mb-1">Code</h5>
+                                                <pre className="text-xs text-gray-300 font-mono bg-gray-900 p-3 rounded mb-2 overflow-x-auto border border-blue-200">
+                                                    {selectedUpdate.updates.code || '// No code changes'}
+                                                </pre>
+                                            </div>
+                                            <div>
+                                                <h5 className="font-bold text-sm text-blue-800 mb-1">Expected Output</h5>
+                                                <pre className="text-xs text-gray-300 font-mono bg-black p-3 rounded overflow-x-auto border border-blue-200">
+                                                    {selectedUpdate.updates.output || '// No output changes'}
+                                                </pre>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {reviewTab === 'mcqs' && (
+                                        <div className="space-y-4">
+                                            {selectedUpdate.updates.mcqs?.map((mcq: any, idx: number) => (
+                                                <div key={idx} className="border border-blue-200 p-3 rounded-lg bg-white">
+                                                    <p className="font-bold text-blue-800 text-sm mb-2">{idx + 1}. {mcq.question}</p>
+                                                    <ul className="list-disc pl-5 text-xs text-blue-900 space-y-1">
+                                                        {mcq.options.map((opt: string, i: number) => (
+                                                            <li key={i} className={i === mcq.correctAnswer ? "text-green-600 font-bold bg-green-50 rounded px-1" : ""}>
+                                                                {opt}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )) || <div className="text-blue-400 italic text-sm">No MCQs in update.</div>}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-100 bg-white flex justify-end space-x-3">
+                            <button
+                                onClick={() => {
+                                    handleRejectUpdate(selectedUpdate._id);
+                                    setSelectedUpdate(null);
+                                }}
+                                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-bold hover:bg-red-200 transition-colors flex items-center border border-red-200"
+                            >
+                                <XCircle size={18} className="mr-2" /> Reject Update
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleApproveUpdate(selectedUpdate._id);
+                                    setSelectedUpdate(null);
+                                }}
+                                className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-md flex items-center"
+                            >
+                                <CheckCircle size={18} className="mr-2" /> Approve & Publish
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Module Modal */}
+            {showModuleModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-2xl w-[900px] max-h-[90vh] overflow-hidden flex flex-col animate-fadeIn">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 className="text-xl font-bold text-gray-800">
+                                {editingModule ? 'Edit Module' : 'Create New Module'}
+                            </h3>
+                            <button onClick={() => setShowModuleModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 flex overflow-hidden">
+                            {/* Left: Module Details & Section List */}
+                            <div className="w-1/3 border-r border-gray-200 p-6 overflow-y-auto bg-gray-50">
+                                <div className="space-y-4 mb-8">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Module ID</label>
+                                        <input
+                                            type="text"
+                                            value={moduleForm.id}
+                                            onChange={e => setModuleForm({ ...moduleForm, id: e.target.value })}
+                                            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                                            placeholder="e.g., module-11"
+                                            disabled={!!editingModule}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
+                                        <input
+                                            type="text"
+                                            value={moduleForm.title}
+                                            onChange={e => setModuleForm({ ...moduleForm, title: e.target.value })}
+                                            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                                            placeholder="Module Title"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Course</label>
+                                        <select
+                                            value={moduleForm.courseId || 'python-ai-course'}
+                                            onChange={e => setModuleForm({ ...moduleForm, courseId: e.target.value })}
+                                            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                                        >
+                                            {Object.entries(courseNames).map(([id, name]) => (
+                                                <option key={id} value={id}>{name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Order</label>
+                                        <input
+                                            type="number"
+                                            value={moduleForm.order}
+                                            onChange={e => setModuleForm({ ...moduleForm, order: parseInt(e.target.value) })}
+                                            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-bold text-gray-700">Sections</h4>
+                                    <button
+                                        onClick={handleAddSection}
+                                        className="text-blue-600 hover:bg-blue-50 p-1 rounded"
+                                    >
+                                        <Plus size={18} />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {moduleForm.sections.map((section, index) => (
+                                        <div
+                                            key={index}
+                                            onClick={() => setActiveSectionIndex(index)}
+                                            className={`p-3 rounded-lg cursor-pointer border transition-all ${activeSectionIndex === index
+                                                ? 'bg-white border-blue-500 shadow-sm'
+                                                : 'bg-white border-gray-200 hover:border-gray-300'
+                                                }`}
+                                        >
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium truncate">{section.title || 'Untitled Section'}</span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteSection(index);
+                                                    }}
+                                                    className="text-gray-400 hover:text-red-500"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {moduleForm.sections.length === 0 && (
+                                        <p className="text-sm text-gray-400 text-center py-4">No sections added</p>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-between items-center mt-8 mb-4">
+                                    <h4 className="font-bold text-gray-700">Sessions</h4>
+                                    <button
+                                        onClick={handleAddSession}
+                                        className="text-blue-600 hover:bg-blue-50 p-1 rounded"
+                                    >
+                                        <Plus size={18} />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {moduleForm.sessions?.map((session, index) => (
+                                        <div
+                                            key={index}
+                                            onClick={() => {
+                                                setActiveSessionIndex(index);
+                                                setActiveSectionIndex(null);
+                                            }}
+                                            className={`p-3 rounded-lg cursor-pointer border transition-all ${activeSessionIndex === index
+                                                ? 'bg-white border-blue-500 shadow-sm'
+                                                : 'bg-white border-gray-200 hover:border-gray-300'
+                                                }`}
+                                        >
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center">
+                                                    <Video size={14} className="mr-2 text-blue-500" />
+                                                    <span className="text-sm font-medium truncate">{session.title || 'Untitled Session'}</span>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteSession(index);
+                                                    }}
+                                                    className="text-gray-400 hover:text-red-500"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!moduleForm.sessions || moduleForm.sessions.length === 0) && (
+                                        <p className="text-sm text-gray-400 text-center py-4 italic">No sessions added</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Right: Section Editor */}
+                            <div className="flex-1 p-6 overflow-y-auto bg-white">
+                                {activeSectionIndex !== null && moduleForm.sections[activeSectionIndex] ? (
+                                    <div className="space-y-6 animate-fadeIn">
+                                        <div className="flex justify-between items-center border-b pb-4">
+                                            <h4 className="font-bold text-gray-800">Editing Section {activeSectionIndex + 1}</h4>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Section Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={moduleForm.sections[activeSectionIndex].title}
+                                                    onChange={e => handleUpdateSection(activeSectionIndex, 'title', e.target.value)}
+                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Section Title"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Content (Markdown)</label>
+                                                <textarea
+                                                    value={moduleForm.sections[activeSectionIndex].content}
+                                                    onChange={e => handleUpdateSection(activeSectionIndex, 'content', e.target.value)}
+                                                    className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 h-64 font-mono text-sm"
+                                                    placeholder="# Heading\n\nContent..."
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Video URL</label>
+                                                    <input
+                                                        type="text"
+                                                        value={moduleForm.sections[activeSectionIndex].videoUrl || ''}
+                                                        onChange={e => handleUpdateSection(activeSectionIndex, 'videoUrl', e.target.value)}
+                                                        className="w-full p-3 border border-gray-300 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">PDF URL</label>
+                                                    <input
+                                                        type="text"
+                                                        value={moduleForm.sections[activeSectionIndex].pdfUrl || ''}
+                                                        onChange={e => handleUpdateSection(activeSectionIndex, 'pdfUrl', e.target.value)}
+                                                        className="w-full p-3 border border-gray-300 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-6 border-t flex justify-end space-x-3">
+                                                <button onClick={() => setShowModuleModal(false)} className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                                                <button onClick={handleSaveModule} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Module</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : activeSessionIndex !== null && moduleForm.sessions && moduleForm.sessions[activeSessionIndex] ? (
+                                    <div className="space-y-6 animate-fadeIn">
+                                        <div className="flex justify-between items-center border-b pb-4">
+                                            <h4 className="font-bold text-gray-800">Editing Session {activeSessionIndex + 1}</h4>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Session Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={moduleForm.sessions[activeSessionIndex].title}
+                                                    onChange={e => handleUpdateSession(activeSessionIndex, 'title', e.target.value)}
+                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Session Title"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={moduleForm.sessions[activeSessionIndex].date}
+                                                    onChange={e => handleUpdateSession(activeSessionIndex, 'date', e.target.value)}
+                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                                                <input
+                                                    type="text"
+                                                    value={moduleForm.sessions[activeSessionIndex].time}
+                                                    onChange={e => handleUpdateSession(activeSessionIndex, 'time', e.target.value)}
+                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="e.g. 7:00 PM IST"
+                                                />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Meeting Link</label>
+                                                <input
+                                                    type="text"
+                                                    value={moduleForm.sessions[activeSessionIndex].link}
+                                                    onChange={e => handleUpdateSession(activeSessionIndex, 'link', e.target.value)}
+                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                                    placeholder="https://..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                                                <input
+                                                    type="text"
+                                                    value={moduleForm.sessions[activeSessionIndex].duration}
+                                                    onChange={e => handleUpdateSession(activeSessionIndex, 'duration', e.target.value)}
+                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="e.g. 60 mins"
+                                                />
+                                            </div>
+                                            <div className="flex items-center space-x-2 pt-6">
+                                                <input
+                                                    type="checkbox"
+                                                    id="admin-is-live"
+                                                    checked={moduleForm.sessions[activeSessionIndex].isLive}
+                                                    onChange={e => handleUpdateSession(activeSessionIndex, 'isLive', e.target.checked)}
+                                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                />
+                                                <label htmlFor="admin-is-live" className="text-sm font-medium text-gray-700">Currently Live</label>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 border-t border-gray-100 flex justify-end space-x-3 bg-white">
+                                            <button onClick={() => setShowModuleModal(false)} className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
+                                            <button onClick={handleSaveModule} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-md flex items-center">
+                                                <Save size={18} className="mr-2" /> Save Module
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                        <Edit size={48} className="mb-4 opacity-20" />
+                                        <p>Select a section or session to edit</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* User Edit Modal */}
+            {showUserModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md animate-fadeIn">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800">{editingUser ? 'Edit User' : 'Add New User'}</h2>
+                            <button onClick={() => setShowUserModal(false)} className="text-gray-500 hover:text-gray-700">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
+                                <input
+                                    type="email"
+                                    value={userForm.email}
+                                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="user@example.com"
+                                    disabled={!!editingUser} // Disable email edit for existing users
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={userForm.fullName}
+                                    onChange={(e) => setUserForm({ ...userForm, fullName: e.target.value })}
+                                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Full Name"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
+                                <select
+                                    value={userForm.role}
+                                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="instructor">Instructor</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Enrolled Courses</label>
+                                <div className="space-y-2 border p-3 rounded bg-gray-50 h-48 overflow-y-auto">
+                                    {Object.entries(courseNames).map(([cid, name]) => (
+                                        <label key={cid} className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={userForm.enrolledCourses.includes(cid)}
+                                                onChange={(e) => {
+                                                    const checked = e.target.checked;
+                                                    setUserForm(prev => ({
+                                                        ...prev,
+                                                        enrolledCourses: checked
+                                                            ? [...prev.enrolledCourses, cid]
+                                                            : prev.enrolledCourses.filter(c => c !== cid)
+                                                    }));
+                                                }}
+                                                className="form-checkbox text-blue-600 rounded"
+                                            />
+                                            <span className="text-sm">
+                                                {name}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end mt-6 space-x-3">
+                            <button
+                                onClick={() => setShowUserModal(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveUser}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md font-medium"
+                            >
+                                {editingUser ? 'Save Changes' : 'Create User'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default AdminDashboard;
