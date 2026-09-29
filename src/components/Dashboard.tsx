@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { API_BASE_URL } from '../config';
 import ReactMarkdown from 'react-markdown';
 import Sidebar from './Sidebar';
@@ -6,7 +6,6 @@ import Header from './Header';
 // import Certificate from './Certificate'; // Lazy loaded now
 const Certificate = lazy(() => import('./Certificate'));
 import Login from './Login';
-import Chatbot from './Chatbot';
 import { ArrowRight, CheckCircle, Play, MessageCircle, FileText, Video, Target, Award, Monitor, Clock } from 'lucide-react';
 import CourseOverview from './CourseOverview';
 import AdminDashboard from './AdminDashboard';
@@ -38,14 +37,55 @@ const courseNames: Record<string, string> = {
 };
 
 const Dashboard = () => {
+    const activeModuleIdRef = useRef<string | null>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isWindowBlurred, setIsWindowBlurred] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [user, setUser] = useState<{ email: string; fullName?: string; completedModules?: string[]; state?: string; language?: string; dob?: string; gender?: string; role?: string; isPaid?: boolean; enrolledCourses?: string[]; finalAssessment?: { score: number; passed: boolean; attempts: number; }; courseAssessments?: { courseId: string; score: number; passed: boolean; attempts: number; }[] } | null>(null);
+    const [user, setUser] = useState<{
+        email: string;
+        fullName?: string;
+        completedModules?: string[];
+        completedSections?: { moduleId: string; sectionIndex: number; score: number; totalQuestions: number; percentage: number; passed: boolean; completedAt: string; }[];
+        moduleAssessments?: { moduleId: string; score: number; totalQuestions: number; percentage: number; passed: boolean; completedAt: string; }[];
+        state?: string;
+        language?: string;
+        dob?: string;
+        gender?: string;
+        role?: string;
+        isPaid?: boolean;
+        enrolledCourses?: string[];
+        finalAssessment?: { score: number; passed: boolean; attempts: number; };
+        courseAssessments?: { courseId: string; score: number; passed: boolean; attempts: number; }[]
+    } | null>(null);
     const [currentModule, setCurrentModule] = useState<any>(null);
     const [modules, setModules] = useState<any[]>([]);
     const [showOutput, setShowOutput] = useState(false);
     const [mcqAnswers, setMcqAnswers] = useState<{ [key: number]: number }>({});
+
+    // Level 1 Section Assessment State
+    const [showSectionQuiz, setShowSectionQuiz] = useState(false);
+    const [sectionAnswers, setSectionAnswers] = useState<Record<number, number>>({});
+    const [sectionQuizResult, setSectionQuizResult] = useState<{
+        passed: boolean;
+        score: number;
+        totalQuestions: number;
+        percentage: number;
+        message: string;
+        feedback?: any[];
+    } | null>(null);
+    const [isSubmittingSectionQuiz, setIsSubmittingSectionQuiz] = useState(false);
+
+    // Level 2 Module Assessment State
+    const [moduleAnswers, setModuleAnswers] = useState<Record<number, number>>({});
+    const [moduleQuizResult, setModuleQuizResult] = useState<{
+        passed: boolean;
+        score: number;
+        totalQuestions: number;
+        percentage: number;
+        message: string;
+        feedback?: any[];
+    } | null>(null);
+    const [isSubmittingModuleQuiz, setIsSubmittingModuleQuiz] = useState(false);
 
     // New state for step-by-step learning
     const [currentStep, setCurrentStep] = useState<'theory' | 'code' | 'mcq'>('theory');
@@ -178,13 +218,14 @@ const Dashboard = () => {
             const res = await fetch(`${API_BASE_URL}/api/courses?lang=${settingsLanguage}&email=${user.email}`);
             const data = await res.json();
             setModules(data);
-            if (currentModule) {
-                const updatedModule = data.find((m: any) => m.id === currentModule.id);
-                if (updatedModule) setCurrentModule(updatedModule);
-                else if (data.length > 0) setCurrentModule(data[0]);
-            } else if (data.length > 0) {
-                setCurrentModule(data[0]);
-            }
+            setCurrentModule((prev: any) => {
+                if (prev) {
+                    const updated = data.find((m: any) => m.id === prev.id);
+                    return updated || prev;
+                }
+                const currentCourseMods = data.filter((m: any) => (m.courseId || 'python-ai-course') === activeCourseId);
+                return currentCourseMods.length > 0 ? currentCourseMods[0] : (data.length > 0 ? data[0] : null);
+            });
         } catch (error) {
             console.error("Error fetching modules:", error);
         }
@@ -194,7 +235,7 @@ const Dashboard = () => {
         if (user?.email) {
             fetchModules();
         }
-    }, [settingsLanguage, view, user]);
+    }, [settingsLanguage, view, user?.email]);
 
     // Safety Check: Ensure Active Course matches loaded modules
     useEffect(() => {
@@ -213,12 +254,16 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (currentModule) {
-            setCode(currentModule.code);
-            setCurrentStep('theory');
-            setCurrentSectionIndex(0);
-            setShowOutput(false);
-            setMcqAnswers({});
-            setExecutionOutput('');
+            // Only reset section index and code if switching to a DIFFERENT module!
+            if (activeModuleIdRef.current !== currentModule.id) {
+                activeModuleIdRef.current = currentModule.id;
+                setCode(currentModule.code);
+                setCurrentStep('theory');
+                setCurrentSectionIndex(0);
+                setShowOutput(false);
+                setMcqAnswers({});
+                setExecutionOutput('');
+            }
         }
     }, [currentModule]);
 
@@ -231,21 +276,25 @@ const Dashboard = () => {
             setSettingsDob(user.dob || '');
             setSettingsGender(user.gender || 'Male');
 
-            // Set current module based on progress
-            if (modules.length > 0) {
+            // Set initial current module based on user progress ONLY if currentModule is not yet selected!
+            if (!currentModule && modules.length > 0) {
+                const currentCourseModules = modules.filter(m => (m.courseId || 'python-ai-course') === activeCourseId);
+                const targetModules = currentCourseModules.length > 0 ? currentCourseModules : modules;
                 const completedIds = user.completedModules || [];
                 if (completedIds.length > 0) {
-                    const lastCompletedId = completedIds[completedIds.length - 1];
-                    const lastIndex = modules.findIndex(m => m.id === lastCompletedId);
-                    if (lastIndex !== -1 && lastIndex < modules.length - 1) {
-                        setCurrentModule(modules[lastIndex + 1]);
-                    } else if (lastIndex !== -1) {
-                        setCurrentModule(modules[lastIndex]);
+                    const lastCompleted = targetModules.filter(m => completedIds.includes(m.id)).pop();
+                    if (lastCompleted) {
+                        const lastIndex = targetModules.findIndex(m => m.id === lastCompleted.id);
+                        if (lastIndex !== -1 && lastIndex < targetModules.length - 1) {
+                            setCurrentModule(targetModules[lastIndex + 1]);
+                        } else {
+                            setCurrentModule(lastCompleted);
+                        }
                     } else {
-                        setCurrentModule(modules[0]);
+                        setCurrentModule(targetModules[0]);
                     }
                 } else {
-                    setCurrentModule(modules[0]);
+                    setCurrentModule(targetModules[0]);
                 }
             }
         }
@@ -551,12 +600,27 @@ const Dashboard = () => {
         }
     };
 
+    const isCurrentSectionPassed = useMemo(() => {
+        if (!currentModule || !currentModule.sections || !currentModule.sections[currentSectionIndex]) return false;
+        const currentSec = currentModule.sections[currentSectionIndex];
+        // If section has no MCQs, it's considered passed automatically
+        if (!currentSec.mcqs || currentSec.mcqs.length === 0) return true;
+        if (!user || !user.completedSections) return false;
+        return user.completedSections.some(
+            (s: any) => s.moduleId === currentModule.id && s.sectionIndex === currentSectionIndex && s.passed
+        );
+    }, [user, currentModule, currentSectionIndex]);
+
     const handleNextSection = () => {
         if (currentModule && currentModule.sections && currentSectionIndex < currentModule.sections.length - 1) {
             setCurrentSectionIndex(prev => prev + 1);
+            setShowSectionQuiz(false);
+            setSectionAnswers({});
+            setSectionQuizResult(null);
             window.scrollTo(0, 0);
         } else {
             setCurrentStep('code');
+            setShowSectionQuiz(false);
             window.scrollTo(0, 0);
         }
     };
@@ -564,12 +628,117 @@ const Dashboard = () => {
     const handlePrevSection = () => {
         if (currentSectionIndex > 0) {
             setCurrentSectionIndex(prev => prev - 1);
+            setShowSectionQuiz(false);
+            setSectionAnswers({});
+            setSectionQuizResult(null);
             window.scrollTo(0, 0);
+        }
+    };
+
+    const handleSectionQuizSubmit = async () => {
+        if (!user || !currentModule) return;
+        const currentSec = currentModule.sections[currentSectionIndex];
+        const numQuestions = currentSec?.mcqs?.length || 0;
+        if (numQuestions === 0) return;
+
+        if (Object.keys(sectionAnswers).length < numQuestions) {
+            alert(`Please answer all ${numQuestions} questions before submitting.`);
+            return;
+        }
+
+        setIsSubmittingSectionQuiz(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/courses/section/evaluate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: user.email,
+                    moduleId: currentModule.id,
+                    sectionIndex: currentSectionIndex,
+                    answers: sectionAnswers
+                })
+            });
+
+            const data = await res.json();
+            setSectionQuizResult(data);
+
+            if (data.passed) {
+                // Update user.completedSections locally
+                setUser(prev => {
+                    if (!prev) return prev;
+                    const existing = prev.completedSections || [];
+                    const filtered = existing.filter((s: any) => !(s.moduleId === currentModule.id && s.sectionIndex === currentSectionIndex));
+                    const updated = {
+                        ...prev,
+                        completedSections: [
+                            ...filtered,
+                            {
+                                moduleId: currentModule.id,
+                                sectionIndex: currentSectionIndex,
+                                score: data.score,
+                                totalQuestions: data.totalQuestions,
+                                percentage: data.percentage,
+                                passed: true,
+                                completedAt: new Date().toISOString()
+                            }
+                        ]
+                    };
+                    localStorage.setItem('user', JSON.stringify(updated));
+                    return updated;
+                });
+            }
+        } catch (err) {
+            console.error("Error submitting section quiz:", err);
+            alert("Error submitting section assessment. Please check your connection.");
+        } finally {
+            setIsSubmittingSectionQuiz(false);
+        }
+    };
+
+    const handleModuleAssessmentSubmit = async () => {
+        if (!user || !currentModule) return;
+        const mcqs = (currentModule.moduleAssessment && currentModule.moduleAssessment.mcqs && currentModule.moduleAssessment.mcqs.length > 0)
+            ? currentModule.moduleAssessment.mcqs
+            : (currentModule.mcqs || []);
+
+        const numQuestions = mcqs.length;
+        if (numQuestions > 0 && Object.keys(moduleAnswers).length < numQuestions) {
+            alert(`Please answer all ${numQuestions} questions before submitting.`);
+            return;
+        }
+
+        setIsSubmittingModuleQuiz(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/courses/module/evaluate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: user.email,
+                    moduleId: currentModule.id,
+                    answers: moduleAnswers
+                })
+            });
+
+            const data = await res.json();
+            setModuleQuizResult(data);
+
+            if (data.passed && data.user) {
+                setUser(data.user);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setProgress(data.user.progress || 0);
+            }
+        } catch (err) {
+            console.error("Error submitting module assessment:", err);
+            alert("Error submitting module assessment. Please check your connection.");
+        } finally {
+            setIsSubmittingModuleQuiz(false);
         }
     };
 
     const handleCodeComplete = () => {
         setCurrentStep('mcq');
+        setModuleAnswers({});
+        setModuleQuizResult(null);
         window.scrollTo(0, 0);
     };
 
@@ -1244,6 +1413,168 @@ const Dashboard = () => {
                                                     <div className="prose max-w-none text-gray-700 text-lg leading-relaxed">
                                                         <ReactMarkdown>{currentModule.sections[currentSectionIndex].content}</ReactMarkdown>
                                                     </div>
+
+                                                    {/* Level 1: Section Knowledge Assessment */}
+                                                    {currentModule.sections[currentSectionIndex].mcqs && currentModule.sections[currentSectionIndex].mcqs.length > 0 && (
+                                                        <div className="mt-10 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl shadow-sm">
+                                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                                                                <div>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <span className="px-3 py-1 bg-blue-600 text-white text-xs font-bold uppercase rounded-full">Level 1 Assessment</span>
+                                                                        {isCurrentSectionPassed && (
+                                                                            <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full flex items-center">
+                                                                                <CheckCircle size={14} className="mr-1" /> Passed (Score: {user?.completedSections?.find((s: any) => s.moduleId === currentModule.id && s.sectionIndex === currentSectionIndex)?.score ?? currentModule.sections[currentSectionIndex].mcqs.length}/{currentModule.sections[currentSectionIndex].mcqs.length})
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <h4 className="text-xl font-bold text-gray-800 mt-2">Section Knowledge Assessment (10 Questions)</h4>
+                                                                    <p className="text-sm text-gray-600">
+                                                                        {isCurrentSectionPassed
+                                                                            ? "You have successfully passed this section's assessment! You can review your quiz or proceed to the next topic."
+                                                                            : "Pass this 10-question assessment with at least 70% to unlock the next section."
+                                                                        }
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => setShowSectionQuiz(prev => !prev)}
+                                                                    className={`px-5 py-2.5 rounded-xl font-semibold transition-all shadow-md flex items-center justify-center ${
+                                                                        showSectionQuiz
+                                                                            ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                                            : isCurrentSectionPassed
+                                                                                ? 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50'
+                                                                                : 'bg-blue-600 text-white hover:bg-blue-700 animate-pulse'
+                                                                    }`}
+                                                                >
+                                                                    {showSectionQuiz ? 'Hide Quiz' : (isCurrentSectionPassed ? 'Review Quiz' : 'Take Section Quiz (10 MCQs)')}
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Section Quiz Questions */}
+                                                            {showSectionQuiz && (
+                                                                <div className="mt-6 pt-6 border-t border-blue-200 space-y-6 animate-fadeIn">
+                                                                    {currentModule.sections[currentSectionIndex].mcqs.map((mcq: any, qIdx: number) => {
+                                                                        const selectedOpt = sectionAnswers[qIdx];
+                                                                        const feedback = sectionQuizResult?.feedback?.find((f: any) => f.questionIndex === qIdx);
+
+                                                                        return (
+                                                                            <div key={qIdx} className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
+                                                                                <p className="font-semibold text-gray-800 mb-3">
+                                                                                    <span className="text-blue-600 mr-2">Q{qIdx + 1}.</span> {mcq.question}
+                                                                                </p>
+                                                                                <div className="space-y-2">
+                                                                                    {mcq.options.map((opt: string, optIdx: number) => {
+                                                                                        let optClass = "border-gray-200 hover:bg-gray-50";
+                                                                                        if (selectedOpt === optIdx) {
+                                                                                            optClass = "border-blue-500 bg-blue-50 font-medium text-blue-900";
+                                                                                        }
+                                                                                        if (sectionQuizResult) {
+                                                                                            if (optIdx === mcq.correctAnswer) {
+                                                                                                optClass = "border-green-500 bg-green-50 text-green-900 font-semibold";
+                                                                                            } else if (selectedOpt === optIdx && !feedback?.correct) {
+                                                                                                optClass = "border-red-500 bg-red-50 text-red-900";
+                                                                                            } else {
+                                                                                                optClass = "border-gray-200 opacity-60";
+                                                                                            }
+                                                                                        }
+
+                                                                                        return (
+                                                                                            <label
+                                                                                                key={optIdx}
+                                                                                                className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${optClass}`}
+                                                                                            >
+                                                                                                <input
+                                                                                                    type="radio"
+                                                                                                    name={`sec-mcq-${currentSectionIndex}-${qIdx}`}
+                                                                                                    className="form-radio h-4 w-4 text-blue-600"
+                                                                                                    checked={selectedOpt === optIdx}
+                                                                                                    onChange={() => {
+                                                                                                        if (!sectionQuizResult?.passed) {
+                                                                                                            setSectionAnswers(prev => ({ ...prev, [qIdx]: optIdx }));
+                                                                                                        }
+                                                                                                    }}
+                                                                                                    disabled={sectionQuizResult?.passed}
+                                                                                                />
+                                                                                                <span className="ml-3 text-sm">{opt}</span>
+                                                                                                {sectionQuizResult && optIdx === mcq.correctAnswer && (
+                                                                                                    <CheckCircle size={16} className="ml-auto text-green-600 shrink-0" />
+                                                                                                )}
+                                                                                            </label>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+
+                                                                                {/* Explanation Feedback if available */}
+                                                                                {sectionQuizResult && mcq.explanation && (
+                                                                                    <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100">
+                                                                                        <span className="font-semibold text-gray-700">Explanation:</span> {mcq.explanation}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+
+                                                                    {/* Section Quiz Result Banner */}
+                                                                    {sectionQuizResult && (
+                                                                        <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                                                                            sectionQuizResult.passed
+                                                                                ? 'bg-green-50 border-green-300 text-green-800'
+                                                                                : 'bg-amber-50 border-amber-300 text-amber-800'
+                                                                        }`}>
+                                                                            <div>
+                                                                                <p className="font-bold text-base">{sectionQuizResult.message}</p>
+                                                                                <p className="text-sm mt-0.5">Score: {sectionQuizResult.score} / {sectionQuizResult.totalQuestions} ({sectionQuizResult.percentage}%)</p>
+                                                                            </div>
+                                                                            {sectionQuizResult.passed ? (
+                                                                                <button
+                                                                                    onClick={handleNextSection}
+                                                                                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold shadow-md transition-all flex items-center shrink-0 self-start sm:self-auto"
+                                                                                >
+                                                                                    <span>{currentSectionIndex === currentModule.sections.length - 1 ? (t.goToPractical || 'Go to Practical Lab') : (t.nextTopic || 'Next Topic')}</span>
+                                                                                    <ArrowRight className="ml-2" size={16} />
+                                                                                </button>
+                                                                            ) : (
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setSectionQuizResult(null);
+                                                                                        setSectionAnswers({});
+                                                                                    }}
+                                                                                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition-colors shrink-0"
+                                                                                >
+                                                                                    Retake Quiz
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Section Quiz Submit Button */}
+                                                                    {!sectionQuizResult?.passed && (
+                                                                        <div className="flex justify-end pt-2">
+                                                                            <button
+                                                                                onClick={handleSectionQuizSubmit}
+                                                                                disabled={isSubmittingSectionQuiz || Object.keys(sectionAnswers).length < currentModule.sections[currentSectionIndex].mcqs.length}
+                                                                                className={`px-8 py-3 rounded-full font-bold text-white shadow-lg transition-all flex items-center ${
+                                                                                    Object.keys(sectionAnswers).length < currentModule.sections[currentSectionIndex].mcqs.length
+                                                                                        ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                                                                                        : 'bg-blue-600 hover:bg-blue-700'
+                                                                                }`}
+                                                                            >
+                                                                                {isSubmittingSectionQuiz ? (
+                                                                                    <span>Evaluating...</span>
+                                                                                ) : (
+                                                                                    <span>
+                                                                                        {Object.keys(sectionAnswers).length < currentModule.sections[currentSectionIndex].mcqs.length
+                                                                                            ? `Answer All Questions (${Object.keys(sectionAnswers).length}/${currentModule.sections[currentSectionIndex].mcqs.length})`
+                                                                                            : 'Submit Section Quiz'
+                                                                                        }
+                                                                                    </span>
+                                                                                )}
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div >
                                                 <div className="flex justify-between mt-8">
                                                     <button
@@ -1255,7 +1586,8 @@ const Dashboard = () => {
                                                     </button>
 
                                                     {(!currentModule.sections[currentSectionIndex].videoUrl || videoCompleted) &&
-                                                        (!currentModule.sections[currentSectionIndex].pdfUrl || pdfCompleted) && (
+                                                        (!currentModule.sections[currentSectionIndex].pdfUrl || pdfCompleted) &&
+                                                        isCurrentSectionPassed && (
                                                             <button
                                                                 onClick={handleNextSection}
                                                                 className="bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 transition-all shadow-lg flex items-center"
@@ -1383,79 +1715,199 @@ const Dashboard = () => {
                                         }
 
                                         {
-                                            currentStep === 'mcq' && (
-                                                <div className="flex-1 flex flex-col animate-fadeIn">
-                                                    <h3 className="text-2xl font-semibold mb-6 text-gray-800">{t.knowledgeCheck}</h3>
-                                                    <div className="flex-1">
-                                                        {currentModule.mcqs && currentModule.mcqs.map((mcq: any, index: number) => {
-                                                            const isAnswered = mcqAnswers.hasOwnProperty(index);
-                                                            const isCorrect = isAnswered && mcqAnswers[index] === mcq.correctAnswer;
+                                            currentStep === 'mcq' && (() => {
+                                                const assessmentMCQs = (currentModule.moduleAssessment?.mcqs && currentModule.moduleAssessment.mcqs.length > 0)
+                                                    ? currentModule.moduleAssessment.mcqs
+                                                    : (currentModule.mcqs || []);
+                                                const isModulePassed = user?.completedModules?.includes(currentModule.id) || moduleQuizResult?.passed;
 
-                                                            return (
-                                                                <div key={index} className="mb-6 p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                                                                    <p className="font-medium text-lg text-gray-800 mb-4">{index + 1}. {mcq.question}</p>
-                                                                    <div className="space-y-3">
-                                                                        {mcq.options.map((option: string, optIndex: number) => {
-                                                                            let optionClass = "border-gray-200 hover:bg-gray-50";
-                                                                            if (isAnswered) {
-                                                                                if (optIndex === mcq.correctAnswer) {
-                                                                                    optionClass = "border-green-500 bg-green-50";
-                                                                                } else if (mcqAnswers[index] === optIndex) {
-                                                                                    optionClass = "border-red-500 bg-red-50";
-                                                                                } else {
-                                                                                    optionClass = "border-gray-200 opacity-50";
-                                                                                }
-                                                                            } else if (mcqAnswers[index] === optIndex) {
-                                                                                optionClass = "border-blue-500 bg-blue-50";
-                                                                            }
-
-                                                                            return (
-                                                                                <label key={optIndex} className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${optionClass}`}>
-                                                                                    <input
-                                                                                        type="radio"
-                                                                                        name={`mcq-${index}`}
-                                                                                        className="form-radio h-5 w-5 text-blue-600"
-                                                                                        onChange={() => {
-                                                                                            if (!isAnswered) {
-                                                                                                const newAnswers = { ...mcqAnswers };
-                                                                                                newAnswers[index] = optIndex;
-                                                                                                setMcqAnswers(newAnswers);
-                                                                                            }
-                                                                                        }}
-                                                                                        checked={mcqAnswers[index] === optIndex}
-                                                                                        disabled={isAnswered}
-                                                                                    />
-                                                                                    <span className="ml-3 text-gray-700">{option}</span>
-                                                                                    {isAnswered && optIndex === mcq.correctAnswer && <CheckCircle size={16} className="ml-auto text-green-600" />}
-                                                                                </label>
-                                                                            )
-                                                                        })}
-                                                                    </div>
-                                                                    {isAnswered && (
-                                                                        <div className={`mt-3 text-sm font-bold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                                                                            {isCorrect ? "Correct Answer!" : "Incorrect Answer. Try to review the topic."}
-                                                                        </div>
-                                                                    )}
+                                                return (
+                                                    <div className="flex-1 flex flex-col animate-fadeIn">
+                                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
+                                                            <div>
+                                                                <span className="px-3 py-1 bg-purple-600 text-white text-xs font-bold uppercase rounded-full">Level 2 Assessment</span>
+                                                                <h3 className="text-2xl font-bold mt-2 text-gray-800">Module Comprehensive Assessment</h3>
+                                                                <p className="text-sm text-gray-600 mt-1">Answer all {assessmentMCQs.length} questions to verify your mastery of this entire module (70% required to pass and unlock the next module).</p>
+                                                            </div>
+                                                            {isModulePassed && (
+                                                                <div className="flex items-center text-green-700 bg-green-100 px-4 py-2 rounded-xl border border-green-300 font-semibold text-sm">
+                                                                    <CheckCircle size={18} className="mr-2" /> Module Passed!
                                                                 </div>
-                                                            )
-                                                        })}
-                                                    </div>
+                                                            )}
+                                                        </div>
 
-                                                    <div className="flex justify-end mt-8">
-                                                        <button
-                                                            onClick={markModuleComplete}
-                                                            className={`flex items-center space-x-2 px-8 py-3 rounded-full transition-all shadow-lg ${currentModule.mcqs && Object.keys(mcqAnswers).length < currentModule.mcqs.length
-                                                                ? 'bg-gray-400 cursor-not-allowed text-gray-200'
-                                                                : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                                                }`}
-                                                            disabled={currentModule.mcqs && Object.keys(mcqAnswers).length < currentModule.mcqs.length}
-                                                        >
-                                                            <span>{currentModule.mcqs && Object.keys(mcqAnswers).length < currentModule.mcqs.length ? t.answerAll : t.completeModule}</span>
-                                                            <CheckCircle className="ml-2" size={20} />
-                                                        </button>
+                                                        {/* Questions list */}
+                                                        <div className="flex-1 space-y-6">
+                                                            {assessmentMCQs.map((mcq: any, index: number) => {
+                                                                const selectedOpt = moduleAnswers[index];
+                                                                const feedback = moduleQuizResult?.feedback?.find((f: any) => f.questionIndex === index);
+
+                                                                return (
+                                                                    <div key={index} className="p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                                                        <p className="font-semibold text-lg text-gray-800 mb-4">
+                                                                            <span className="text-purple-600 mr-2">Q{index + 1}.</span> {mcq.question}
+                                                                        </p>
+                                                                        <div className="space-y-3">
+                                                                            {mcq.options.map((option: string, optIndex: number) => {
+                                                                                let optionClass = "border-gray-200 hover:bg-gray-50";
+                                                                                if (selectedOpt === optIndex) {
+                                                                                    optionClass = "border-purple-500 bg-purple-50 font-medium text-purple-900";
+                                                                                }
+                                                                                if (moduleQuizResult) {
+                                                                                    if (optIndex === mcq.correctAnswer) {
+                                                                                        optionClass = "border-green-500 bg-green-50 text-green-900 font-semibold";
+                                                                                    } else if (selectedOpt === optIndex && !feedback?.correct) {
+                                                                                        optionClass = "border-red-500 bg-red-50 text-red-900";
+                                                                                    } else {
+                                                                                        optionClass = "border-gray-200 opacity-50";
+                                                                                    }
+                                                                                }
+
+                                                                                return (
+                                                                                    <label key={optIndex} className={`flex items-center p-3.5 rounded-lg border cursor-pointer transition-all ${optionClass}`}>
+                                                                                        <input
+                                                                                            type="radio"
+                                                                                            name={`module-mcq-${index}`}
+                                                                                            className="form-radio h-5 w-5 text-purple-600"
+                                                                                            onChange={() => {
+                                                                                                if (!moduleQuizResult?.passed) {
+                                                                                                    setModuleAnswers(prev => ({ ...prev, [index]: optIndex }));
+                                                                                                }
+                                                                                            }}
+                                                                                            checked={selectedOpt === optIndex}
+                                                                                            disabled={moduleQuizResult?.passed}
+                                                                                        />
+                                                                                        <span className="ml-3 text-gray-800">{option}</span>
+                                                                                        {moduleQuizResult && optIndex === mcq.correctAnswer && <CheckCircle size={18} className="ml-auto text-green-600 shrink-0" />}
+                                                                                    </label>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+
+                                                                        {moduleQuizResult && mcq.explanation && (
+                                                                            <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100">
+                                                                                <span className="font-semibold text-gray-700">Explanation:</span> {mcq.explanation}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {/* Module Result Banner */}
+                                                        {moduleQuizResult && (
+                                                            <div className={`mt-6 p-5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                                                                moduleQuizResult.passed
+                                                                    ? 'bg-green-50 border-green-300 text-green-800'
+                                                                    : 'bg-red-50 border-red-300 text-red-800'
+                                                            }`}>
+                                                                <div>
+                                                                    <p className="font-bold text-lg">{moduleQuizResult.message}</p>
+                                                                    <p className="text-sm mt-1">Score: {moduleQuizResult.score} / {moduleQuizResult.totalQuestions} ({moduleQuizResult.percentage}%)</p>
+                                                                </div>
+                                                                {moduleQuizResult.passed ? (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const currentCourseModules = modules.filter(m => (m.courseId || 'python-ai-course') === activeCourseId);
+                                                                            const currentIndex = currentCourseModules.findIndex(m => m.id === currentModule.id);
+                                                                            if (currentIndex !== -1 && currentIndex < currentCourseModules.length - 1) {
+                                                                                setCurrentModule(currentCourseModules[currentIndex + 1]);
+                                                                                setCurrentSectionIndex(0);
+                                                                                setCurrentStep('theory');
+                                                                                setModuleQuizResult(null);
+                                                                                setModuleAnswers({});
+                                                                                window.scrollTo(0, 0);
+                                                                            } else {
+                                                                                setView('certificate');
+                                                                            }
+                                                                        }}
+                                                                        className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold shadow-md transition-all flex items-center shrink-0 self-start sm:self-auto"
+                                                                    >
+                                                                        <span>
+                                                                            {(() => {
+                                                                                const currentCourseModules = modules.filter(m => (m.courseId || 'python-ai-course') === activeCourseId);
+                                                                                const currentIndex = currentCourseModules.findIndex(m => m.id === currentModule.id);
+                                                                                return (currentIndex !== -1 && currentIndex < currentCourseModules.length - 1)
+                                                                                    ? 'Proceed to Next Module'
+                                                                                    : 'View Course Certificate';
+                                                                            })()}
+                                                                        </span>
+                                                                        <ArrowRight className="ml-2" size={16} />
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setModuleQuizResult(null);
+                                                                            setModuleAnswers({});
+                                                                        }}
+                                                                        className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors shrink-0"
+                                                                    >
+                                                                        Retake Assessment
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Navigation / Submit Buttons */}
+                                                        <div className="flex justify-between items-center mt-8">
+                                                            <button
+                                                                onClick={() => setCurrentStep('code')}
+                                                                className="px-6 py-2.5 rounded-lg font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                                                            >
+                                                                Back to Lab
+                                                            </button>
+
+                                                            {moduleQuizResult?.passed ? (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const currentCourseModules = modules.filter(m => (m.courseId || 'python-ai-course') === activeCourseId);
+                                                                        const currentIndex = currentCourseModules.findIndex(m => m.id === currentModule.id);
+                                                                        if (currentIndex !== -1 && currentIndex < currentCourseModules.length - 1) {
+                                                                            setCurrentModule(currentCourseModules[currentIndex + 1]);
+                                                                            setCurrentSectionIndex(0);
+                                                                            setCurrentStep('theory');
+                                                                            setModuleQuizResult(null);
+                                                                            setModuleAnswers({});
+                                                                            window.scrollTo(0, 0);
+                                                                        } else {
+                                                                            setView('certificate');
+                                                                        }
+                                                                    }}
+                                                                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold shadow-lg transition-all flex items-center"
+                                                                >
+                                                                    <span>{(() => {
+                                                                        const currentCourseModules = modules.filter(m => (m.courseId || 'python-ai-course') === activeCourseId);
+                                                                        const currentIndex = currentCourseModules.findIndex(m => m.id === currentModule.id);
+                                                                        return (currentIndex !== -1 && currentIndex < currentCourseModules.length - 1)
+                                                                            ? 'Unlock & Proceed to Next Module'
+                                                                            : 'View Course Certificate';
+                                                                    })()}</span>
+                                                                    <ArrowRight className="ml-2" size={20} />
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={handleModuleAssessmentSubmit}
+                                                                    disabled={isSubmittingModuleQuiz || (assessmentMCQs.length > 0 && Object.keys(moduleAnswers).length < assessmentMCQs.length)}
+                                                                    className={`flex items-center space-x-2 px-8 py-3 rounded-full font-bold transition-all shadow-lg ${
+                                                                        assessmentMCQs.length > 0 && Object.keys(moduleAnswers).length < assessmentMCQs.length
+                                                                            ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                                                                            : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                                                    }`}
+                                                                >
+                                                                    {isSubmittingModuleQuiz ? (
+                                                                        <span>Evaluating Assessment...</span>
+                                                                    ) : (
+                                                                        <>
+                                                                            <span>{assessmentMCQs.length > 0 && Object.keys(moduleAnswers).length < assessmentMCQs.length ? `Answer All Questions (${Object.keys(moduleAnswers).length}/${assessmentMCQs.length})` : 'Submit Module Assessment'}</span>
+                                                                            <CheckCircle className="ml-2" size={20} />
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )
+                                                );
+                                            })()
                                         }
                                     </>
                                 )}
@@ -1499,8 +1951,7 @@ const Dashboard = () => {
                         )
                     }
 
-                    {/* Chatbot */}
-                    <Chatbot language={settingsLanguage} />
+                    {/* Chatbot removed as requested */}
                 </main >
             </div >
         </div >
