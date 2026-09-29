@@ -66,8 +66,8 @@ const CertificateVerification: React.FC = () => {
             {/* Navbar Placeholder / Brand */}
             <div className="relative z-10 px-6 py-6 flex justify-between items-center max-w-7xl mx-auto w-full">
                 <div className="flex items-center gap-2">
-                    <img src="/logo.png" alt="Genesys Quantis" className="h-12 bg-white/10 p-1.5 rounded-lg backdrop-blur-sm border border-white/20" />
-                    <span className="font-bold text-xl tracking-tight text-white ml-2">Genesys Quantis <span className="text-yellow-400 font-light">Verify</span></span>
+                    <img src="/logo.png" alt="GenQuantaa" className="h-12 bg-white/10 p-1.5 rounded-lg backdrop-blur-sm border border-white/20" />
+                    <span className="font-bold text-xl tracking-tight text-white ml-2">GenQuantaa <span className="text-yellow-400 font-light">Verify</span></span>
                 </div>
             </div>
 

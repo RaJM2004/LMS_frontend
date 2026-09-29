@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
-import { Users, BookOpen, Plus, Edit, Trash2, Save, X, BarChart2, Search, LayoutDashboard, FileText, Video, LogOut, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Users, BookOpen, Plus, Edit, Trash2, Save, X, BarChart2, Search, LayoutDashboard, FileText, Video, LogOut, Clock, CheckCircle, XCircle, Ticket, Percent } from 'lucide-react';
+import AdminCoursesTab from './AdminCoursesTab';
+
+
+interface Coupon {
+    _id: string;
+    code: string;
+    discountType: 'PERCENTAGE' | 'FLAT';
+    discountValue: number;
+    validFrom: string;
+    validUntil: string;
+    isActive: boolean;
+    usageLimit?: number;
+    usedCount: number;
+}
 
 interface User {
     _id: string;
@@ -80,7 +94,61 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'modules' | 'updates'>('dashboard');
+    
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [showCouponModal, setShowCouponModal] = useState(false);
+    const [couponForm, setCouponForm] = useState({
+        code: '',
+        discountType: 'FLAT',
+        discountValue: 0,
+        validFrom: new Date().toISOString().split('T')[0],
+        validUntil: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
+        usageLimit: 0
+    });
+
+    const fetchCoupons = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/coupons`);
+            const data = await res.json();
+            if (Array.isArray(data)) setCoupons(data);
+        } catch (error) {
+            console.error('Error fetching coupons:', error);
+        }
+    };
+
+    const handleSaveCoupon = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/coupons`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(couponForm)
+            });
+            if (res.ok) {
+                setShowCouponModal(false);
+                fetchCoupons();
+            } else {
+                const err = await res.json();
+                alert(err.error || 'Failed to create coupon');
+            }
+        } catch (error) {
+            console.error('Error saving coupon:', error);
+        }
+    };
+
+    const handleToggleCoupon = async (id: string) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/coupons/${id}/toggle`, { method: 'PUT' });
+            if (res.ok) fetchCoupons();
+        } catch (error) {
+            console.error('Error toggling coupon:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchCoupons();
+    }, []);
+
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'modules' | 'updates' | 'coupons' | 'courses'>('dashboard');
     const [users, setUsers] = useState<User[]>([]);
     const [modules, setModules] = useState<Module[]>([]);
     const [pendingUpdates, setPendingUpdates] = useState<ModuleUpdate[]>([]);
@@ -117,29 +185,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     const [activeSessionIndex, setActiveSessionIndex] = useState<number | null>(null);
 
     // Course Mapping
-    const courseNames: Record<string, string> = {
-        'python-ai-course': 'Python Programming for AI',
-        'ml-dl-course': 'Machine Learning & Deep Learning',
-        'neural-networks-course': 'Neural Networks & Deep Learning',
-        'nlp-course': 'Natural Language Processing',
-        'cv-course': 'Computer Vision',
-        'agentic-ai-course': 'Agentic AI',
-        'gen-ai-course': 'Generative AI',
-        'ai-risk-course': 'AI Risk Curriculum',
-        'csv-course': 'Computerized System Validation',
-        'med-writing-course': 'Medical Writing',
-        'ai-healthcare-course': 'AI in Healthcare',
-        'lifesciences-ai-course': 'Transforming Lifesciences with AI',
-        'ai-cybersecurity-course': 'AI in Cybersecurity',
-        'ai-medical-coding-course': 'AI in Medical Coding',
-        'pharma-gen-ai-course': 'Generative AI in Pharma',
-        'data-engg': 'Data Engineering',
-        'data-scientist': 'Data Scientist',
-        'robotics-ai': 'Advanced Robotics & AI Integration',
-        'drug-discovery-sprint': 'Next-Gen Drug Discovery: 5-Day Sprint',
-        'drug-discovery-deep-dive': 'Next-Gen Drug Discovery: 45-Day Deep-Dive',
-        'drug-discovery-masterclass': 'Next-Gen Drug Discovery: 6-Month Masterclass'
+        const [courses, setCourses] = useState<any[]>([]);
+    const [courseNames, setCourseNames] = useState<Record<string, string>>({});
+    
+    const fetchCoursesMetadata = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/course-metadata`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setCourses(data);
+                const mapping: Record<string, string> = {};
+                data.forEach((c: any) => mapping[c.id] = c.title);
+                setCourseNames(mapping);
+            }
+        } catch (err) {
+            console.error("Error fetching courses", err);
+        }
     };
+    
+    useEffect(() => {
+        fetchCoursesMetadata();
+    }, []);
 
     // Helper to get course color
     const getCourseColor = (courseId: string) => {
@@ -447,6 +513,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                         <BookOpen size={20} />
                         <span>Course Content</span>
                     </button>
+                        <button
+                            onClick={() => setActiveTab('courses')}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'courses' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
+                        >
+                            <BookOpen size={20} />
+                            <span>Courses</span>
+                        </button>
                     <button
                         onClick={() => setActiveTab('updates')}
                         className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'updates' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -455,6 +528,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                         <Clock size={20} />
                         <span>Review Updates</span>
                     </button>
+
+                    <button
+                        onClick={() => setActiveTab('coupons')}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'coupons' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
+                    >
+                        <Ticket size={20} />
+                        <span>Coupons</span>
+                    </button>
+
                 </nav>
                 <div className="p-4 border-t border-gray-800">
                     <div className="flex items-center space-x-3 mb-4">
@@ -809,6 +891,160 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                                 </tbody>
                             </table>
                         </div>
+                    )}
+                
+                    {activeTab === 'coupons' && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fadeIn">
+                            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                                <h3 className="text-xl font-bold text-gray-800">Coupon Management</h3>
+                                <button
+                                    onClick={() => setShowCouponModal(true)}
+
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center text-sm font-bold"
+                                >
+                                    <Plus size={18} className="mr-2" />
+                                    Create Coupon
+                                </button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left whitespace-nowrap">
+                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Code</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Discount</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Validity</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Usage</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600">Status</th>
+                                            <th className="px-6 py-4 font-semibold text-gray-600 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {coupons.map(coupon => (
+                                            <tr key={coupon._id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 font-bold text-gray-800">{coupon.code}</td>
+                                                <td className="px-6 py-4">
+                                                    {coupon.discountType === 'FLAT' ? 'â‚¹' + coupon.discountValue : coupon.discountValue + '%'}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">
+                                                    {new Date(coupon.validFrom).toLocaleDateString()} - {new Date(coupon.validUntil).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">
+                                                    {coupon.usedCount} / {coupon.usageLimit || 'âˆž'}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${coupon.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                        {coupon.isActive ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <button
+                                                        onClick={() => handleToggleCoupon(coupon._id)}
+                                                        className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                                    >
+                                                        Toggle Status
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                
+
+                            {/* Coupon Modal */}
+                            {showCouponModal && (
+                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-xl font-bold">Create Coupon</h3>
+                                            <button onClick={() => setShowCouponModal(false)} className="text-gray-400 hover:text-gray-600">
+                                                <X size={24} />
+                                            </button>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Code (e.g. SUMMER50)</label>
+                                                <input
+                                                    type="text"
+                                                    value={couponForm.code}
+                                                    onChange={e => setCouponForm({...couponForm, code: e.target.value.toUpperCase()})}
+                                                    className="w-full p-2 border border-gray-300 rounded-lg"
+                                                />
+                                            </div>
+                                            <div className="flex space-x-4">
+                                                <div className="flex-1">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                                    <select
+                                                        value={couponForm.discountType}
+                                                        onChange={e => setCouponForm({...couponForm, discountType: e.target.value as any})}
+                                                        className="w-full p-2 border border-gray-300 rounded-lg"
+                                                    >
+                                                        <option value="FLAT">Flat (â‚¹)</option>
+                                                        <option value="PERCENTAGE">Percentage (%)</option>
+                                                    </select>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
+                                                    <input
+                                                        type="number"
+                                                        value={couponForm.discountValue}
+                                                        onChange={e => setCouponForm({...couponForm, discountValue: Number(e.target.value)})}
+                                                        className="w-full p-2 border border-gray-300 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex space-x-4">
+                                                <div className="flex-1">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
+                                                    <input
+                                                        type="date"
+                                                        value={couponForm.validFrom}
+                                                        onChange={e => setCouponForm({...couponForm, validFrom: e.target.value})}
+                                                        className="w-full p-2 border border-gray-300 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
+                                                    <input
+                                                        type="date"
+                                                        value={couponForm.validUntil}
+                                                        onChange={e => setCouponForm({...couponForm, validUntil: e.target.value})}
+                                                        className="w-full p-2 border border-gray-300 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Usage Limit (0 for unlimited)</label>
+                                                <input
+                                                    type="number"
+                                                    value={couponForm.usageLimit}
+                                                    onChange={e => setCouponForm({...couponForm, usageLimit: Number(e.target.value)})}
+                                                    className="w-full p-2 border border-gray-300 rounded-lg"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="mt-6 flex justify-end space-x-3">
+                                            <button
+                                                onClick={() => setShowCouponModal(false)}
+                                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSaveCoupon}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                            >
+                                                Save Coupon
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                    {activeTab === 'courses' && (
+                        <AdminCoursesTab />
                     )}
                 </main>
             </div>
@@ -1387,3 +1623,4 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 };
 
 export default AdminDashboard;
+

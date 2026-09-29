@@ -373,7 +373,7 @@ const Certificate: React.FC<CertificateProps> = ({
                             <div className="flex-1 flex flex-col items-center justify-start text-center relative z-10 -mt-2">
                                 {/* Logo */}
                                 <div className="mb-4">
-                                    <img src="/logo.png" alt="Genesys Quantis" className="h-12 object-contain" />
+                                    <img src="/logo.png" alt="GenQuantaa" className="h-12 object-contain" />
                                 </div>
 
                                 <h1 className="text-5xl font-serif font-bold text-[#1e3a8a] tracking-[0.15em] uppercase mb-4" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.1)' }}>
@@ -469,7 +469,7 @@ const Certificate: React.FC<CertificateProps> = ({
                     {/* Watermark Big */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none overflow-hidden">
                         <span className="text-[80px] font-bold uppercase text-gray-900 tracking-widest transform -rotate-12 select-none whitespace-nowrap">
-                            Genesys Quantis
+                            GenQuantaa
                         </span>
                     </div>
                 </div>

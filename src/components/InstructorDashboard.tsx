@@ -102,29 +102,27 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onLogout, use
     const [activeModalTab, setActiveModalTab] = useState<'sections' | 'code' | 'mcqs' | 'sessions'>('sections');
     const [activeSectionIndex, setActiveSectionIndex] = useState<number | null>(null);
 
-    const courseNames: Record<string, string> = {
-        'python-ai-course': 'Python Programming for AI',
-        'ml-dl-course': 'Machine Learning & Deep Learning',
-        'neural-networks-course': 'Neural Networks & Deep Learning',
-        'nlp-course': 'Natural Language Processing',
-        'cv-course': 'Computer Vision',
-        'agentic-ai-course': 'Agentic AI',
-        'gen-ai-course': 'Generative AI',
-        'ai-risk-course': 'AI Risk Curriculum',
-        'csv-course': 'Computerized System Validation',
-        'med-writing-course': 'Medical Writing',
-        'ai-healthcare-course': 'AI in Healthcare',
-        'lifesciences-ai-course': 'Transforming Lifesciences with AI',
-        'ai-cybersecurity-course': 'AI in Cybersecurity',
-        'ai-medical-coding-course': 'AI in Medical Coding',
-        'pharma-gen-ai-course': 'Generative AI in Pharma',
-        'data-engg': 'Data Engineering',
-        'data-scientist': 'Data Scientist',
-        'robotics-ai': 'Advanced Robotics & AI Integration',
-        'drug-discovery-sprint': 'Next-Gen Drug Discovery: 5-Day Sprint',
-        'drug-discovery-deep-dive': 'Next-Gen Drug Discovery: 45-Day Deep-Dive',
-        'drug-discovery-masterclass': 'Next-Gen Drug Discovery: 6-Month Masterclass'
+        const [courses, setCourses] = useState<any[]>([]);
+    const [courseNames, setCourseNames] = useState<Record<string, string>>({});
+    
+    const fetchCoursesMetadata = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/course-metadata`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setCourses(data);
+                const mapping: Record<string, string> = {};
+                data.forEach((c: any) => mapping[c.id] = c.title);
+                setCourseNames(mapping);
+            }
+        } catch (err) {
+            console.error("Error fetching courses", err);
+        }
     };
+    
+    useEffect(() => {
+        fetchCoursesMetadata();
+    }, []);
 
     const getCourseColor = (courseId: string) => {
         const colors = [
@@ -976,3 +974,4 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onLogout, use
 };
 
 export default InstructorDashboard;
+

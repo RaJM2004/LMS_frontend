@@ -3,7 +3,10 @@ import Dashboard from './components/Dashboard';
 import LandingPage from './components/LandingPage';
 import CoursePage from './components/CoursePage';
 import CertificateVerification from './components/CertificateVerification';
-
+import QuantumPage from './components/QuantumPage';
+import ProgramPage from './components/ProgramPage';
+import BiologicsPage from './components/BiologicsPage';
+import BecomeTrainerPage from './components/BecomeTrainerPage';
 
 
 function App() {
@@ -11,8 +14,13 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage onStart={() => window.location.href = '/login'} onCourseClick={(id) => window.location.href = `/course/${id}`} />} />
+        <Route path="/become-trainer" element={<BecomeTrainerPage />} />
         <Route path="/login" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/quantum" element={<QuantumPage />} />
+        <Route path="/fde" element={<ProgramPage />} />
+        <Route path="/biologics" element={<BiologicsPage />} />
+        <Route path="/drug-discovery" element={<BiologicsPage />} />
         <Route path="/course/:courseId" element={<CoursePageWrapper />} />
         <Route path="/verify" element={<CertificateVerification />} />
         <Route path="/verify/:id" element={<CertificateVerification />} />
