@@ -63,7 +63,7 @@ const Dashboard = () => {
     const [mcqAnswers, setMcqAnswers] = useState<{ [key: number]: number }>({});
 
     // Level 1 Section Assessment State
-    const [showSectionQuiz, setShowSectionQuiz] = useState(false);
+    const [showSectionQuiz, setShowSectionQuiz] = useState(true);
     const [sectionAnswers, setSectionAnswers] = useState<Record<number, number>>({});
     const [sectionQuizResult, setSectionQuizResult] = useState<{
         passed: boolean;
@@ -614,7 +614,7 @@ const Dashboard = () => {
     const handleNextSection = () => {
         if (currentModule && currentModule.sections && currentSectionIndex < currentModule.sections.length - 1) {
             setCurrentSectionIndex(prev => prev + 1);
-            setShowSectionQuiz(false);
+            setShowSectionQuiz(true);
             setSectionAnswers({});
             setSectionQuizResult(null);
             window.scrollTo(0, 0);
@@ -628,7 +628,7 @@ const Dashboard = () => {
     const handlePrevSection = () => {
         if (currentSectionIndex > 0) {
             setCurrentSectionIndex(prev => prev - 1);
-            setShowSectionQuiz(false);
+            setShowSectionQuiz(true);
             setSectionAnswers({});
             setSectionQuizResult(null);
             window.scrollTo(0, 0);
@@ -1596,17 +1596,46 @@ const Dashboard = () => {
                                                         {t.previous}
                                                     </button>
 
-                                                    {(!currentModule.sections[currentSectionIndex].videoUrl || videoCompleted) &&
-                                                        (!currentModule.sections[currentSectionIndex].pdfUrl || pdfCompleted) &&
-                                                        isCurrentSectionPassed && (
-                                                            <button
-                                                                onClick={handleNextSection}
-                                                                className="bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 transition-all shadow-lg flex items-center"
-                                                            >
-                                                                <span>{currentSectionIndex === currentModule.sections.length - 1 ? t.goToPractical : t.nextTopic}</span>
-                                                                <ArrowRight className="ml-2" size={20} />
-                                                            </button>
-                                                        )}
+                                                    {(() => {
+                                                        const sec = currentModule.sections[currentSectionIndex];
+                                                        const needsVideo = sec.videoUrl && !videoCompleted;
+                                                        const needsPdf = sec.pdfUrl && !pdfCompleted;
+                                                        const needsQuiz = sec.mcqs && sec.mcqs.length > 0 && !isCurrentSectionPassed;
+                                                        const isUnlocked = !needsVideo && !needsPdf && !needsQuiz;
+
+                                                        if (isUnlocked) {
+                                                            return (
+                                                                <button
+                                                                    onClick={handleNextSection}
+                                                                    className="bg-blue-600 text-white px-8 py-3 rounded-full hover:bg-blue-700 transition-all shadow-lg flex items-center"
+                                                                >
+                                                                    <span>{currentSectionIndex === currentModule.sections.length - 1 ? t.goToPractical : t.nextTopic}</span>
+                                                                    <ArrowRight className="ml-2" size={20} />
+                                                                </button>
+                                                            );
+                                                        }
+
+                                                        const missingItems = [
+                                                            needsVideo ? 'Watch Video' : null,
+                                                            needsPdf ? 'Complete Document' : null,
+                                                            needsQuiz ? 'Pass Quiz (≥70%)' : null
+                                                        ].filter(Boolean);
+
+                                                        return (
+                                                            <div className="flex flex-wrap items-center justify-end gap-2">
+                                                                <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+                                                                    Required to unlock: {missingItems.join(', ')}
+                                                                </span>
+                                                                <button
+                                                                    disabled
+                                                                    className="bg-gray-200 text-gray-400 cursor-not-allowed px-6 py-2.5 rounded-full font-medium flex items-center"
+                                                                >
+                                                                    <span>{currentSectionIndex === currentModule.sections.length - 1 ? t.goToPractical : t.nextTopic}</span>
+                                                                    <ArrowRight className="ml-2" size={18} />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div >
                                         )}
