@@ -71,9 +71,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {courses.length <= 1 && (
                     <div className="relative h-32 bg-cover bg-center rounded-lg overflow-hidden mb-2" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80")' }}>
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-end p-2">
-                            <div>
-                                <div className="text-sm font-bold">AI For All</div>
-                            </div>
+                                <div className="text-sm font-bold">
+                                    {courses.find(c => c.id === activeCourseId)?.name || courses[0]?.name || '30-Day Robotics Lab'}
+                                </div>
                         </div>
                     </div>
                 )}

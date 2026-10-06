@@ -33,7 +33,12 @@ const courseNames: Record<string, string> = {
     'drug-discovery-ai': 'Next-Gen Drug Discovery with AI',
     'drug-discovery-sprint': 'Next-Gen Drug Discovery: 5-Day Sprint',
     'drug-discovery-deep-dive': 'Next-Gen Drug Discovery: 45-Day Deep-Dive',
-    'drug-discovery-masterclass': 'Next-Gen Drug Discovery: 6-Month Masterclass'
+    'drug-discovery-masterclass': 'Next-Gen Drug Discovery: 6-Month Masterclass',
+    'robot-ai': '30-Day Robotics Lab – From Zero to Robot Builder',
+    'robotics-ai': 'Advanced Robotics & AI Integration',
+    'no-code-low-code-ai-agents': 'No Code Low Code AI Agents',
+    'cqv-course': 'Commissioning Qualification and Validation',
+    'curaquantis-course': 'CuraQuantis Health Clinics'
 };
 
 const Dashboard = () => {
@@ -193,9 +198,8 @@ const Dashboard = () => {
     useEffect(() => {
         if (!user) return;
 
-        // Filter valid courses only
-        const validCourses = Object.keys(courseNames);
-        const enrolled = (user.enrolledCourses || []).filter(c => validCourses.includes(c));
+        // Sync with user's enrolled courses
+        const enrolled = (user.enrolledCourses || []).filter(Boolean);
 
         // If user has enrolled courses
         if (enrolled.length > 0) {
@@ -221,7 +225,7 @@ const Dashboard = () => {
             setCurrentModule((prev: any) => {
                 if (prev) {
                     const updated = data.find((m: any) => m.id === prev.id);
-                    return updated || prev;
+                    if (updated && (updated.courseId || 'python-ai-course') === activeCourseId) return updated;
                 }
                 const currentCourseMods = data.filter((m: any) => (m.courseId || 'python-ai-course') === activeCourseId);
                 return currentCourseMods.length > 0 ? currentCourseMods[0] : (data.length > 0 ? data[0] : null);
@@ -248,6 +252,12 @@ const Dashboard = () => {
                 const availableCourseId = modules[0].courseId || 'python-ai-course';
                 console.warn(`Active course ${activeCourseId} has no modules. Switching to ${availableCourseId}`);
                 setActiveCourseId(availableCourseId);
+            } else {
+                // Ensure currentModule belongs to activeCourseId
+                if (!currentModule || (currentModule.courseId || 'python-ai-course') !== activeCourseId) {
+                    setCurrentModule(currentCourseModules[0]);
+                    setCurrentSectionIndex(0);
+                }
             }
         }
     }, [modules, activeCourseId]);
